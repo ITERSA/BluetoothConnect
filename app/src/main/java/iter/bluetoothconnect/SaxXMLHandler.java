@@ -9,6 +9,7 @@ import java.util.HashMap;
 
 /**
  * Created by jfernandez on 26/10/2016.
+ * Manage XML parsing, generating a public ArrayList<String> items -> (name:value)
  */
 
 public class SaxXMLHandler extends DefaultHandler {

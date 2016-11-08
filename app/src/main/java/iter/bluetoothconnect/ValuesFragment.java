@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 /**
  * Created by jfernandez on 03/11/2016.
+ * Show values fields in a dialog
  */
 
 public class ValuesFragment extends DialogFragment {
@@ -65,7 +66,6 @@ public class ValuesFragment extends DialogFragment {
     public void updateTV3(String st3){
         tv3.setText(st3);
     }
-
     public void updateTV4(String st4){
         tv4.setText(st4);
     }

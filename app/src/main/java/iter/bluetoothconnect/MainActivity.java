@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar  progressBar;
 
     private static final int REQUEST_ENABLE_BT = 1000;
+
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();

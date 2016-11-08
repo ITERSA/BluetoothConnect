@@ -9,6 +9,7 @@ import android.support.v4.app.DialogFragment;
 
 /**
  * Created by jfernandez on 03/11/2016.
+ * Show progress dialog
  */
 
 public class ProgressDialogFragment extends DialogFragment {
@@ -23,7 +24,7 @@ public class ProgressDialogFragment extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         ProgressDialog dialog = new ProgressDialog(getActivity(), getTheme());
-        dialog.setTitle("Conectando...");
+        dialog.setTitle("Estableciendo conexión...");
         dialog.setMessage("Espere un momento...");
         dialog.setIndeterminate(true);
         dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);

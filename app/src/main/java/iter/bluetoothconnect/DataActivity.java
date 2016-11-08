@@ -101,6 +101,7 @@ public class DataActivity extends AppCompatActivity {
         dialogFragment = new ValuesFragment();
         progressDialogFragment = new ProgressDialogFragment();
         tgRecord = (ToggleButton)findViewById(R.id.toggleRecording);
+        /*Toggle button ON/OFF reading data*/
         tgRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -125,12 +126,13 @@ public class DataActivity extends AppCompatActivity {
             }
         });
 
+        /*List of items*/
         spinner = (Spinner) findViewById(R.id.spinner);
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                // Log.v("DataActivity", "tap"+position);
-               //plot.setTitle(parent.getItemAtPosition(position).toString());
+                plot.setTitle(parent.getItemAtPosition(position).toString());
                 String text = spinner.getSelectedItem().toString();
                 plot.clear();
                 addSerieToPlot(text);
@@ -159,7 +161,7 @@ public class DataActivity extends AppCompatActivity {
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("###.##"));
         plot.setTitle(spinner.getSelectedItem().toString());
 
-        /*Handlers*/
+        /**** Handlers ****/
         bluetoothIn = new Handler(){
             @Override
             public void handleMessage(Message msg) {
@@ -175,7 +177,7 @@ public class DataActivity extends AppCompatActivity {
                         String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex);
                         String[] values = dataInPrint.split(",");
 
-                        // Log.v("Data",dataInPrint);
+                        // if toggle button is checked, then add data parsed to series for showing in Plot
                         if (tgRecord.isChecked()) {
 
                             //Insert values into map
@@ -197,7 +199,7 @@ public class DataActivity extends AppCompatActivity {
                                         }else
                                             serie.addLast(null, 0);
                                     }
-                                } else {
+                                } else {    //Parse "LIC" xml
                                     String wellFormedXML = "<xml>" + items[1] + "</xml>";
                                     ArrayList<String> xmlItems = parseXml(wellFormedXML);
                                     if (xmlItems != null){
@@ -213,6 +215,7 @@ public class DataActivity extends AppCompatActivity {
                                                 }
                                                 //parse LIC <co2>394.76</co2><tem>51.2</tem><pre>101383</pre><h2o>394.76</h2o><bat>12.4</bat>
                                             }
+                                            //Show info in dialog if it is shown
                                             if (xmlItem[0].toLowerCase().equals("bat")){
                                                 updateBattery(xmlItem[1]);
                                                 if ((dialogFragment != null) && (dialogFragment.shown)){
@@ -243,13 +246,14 @@ public class DataActivity extends AppCompatActivity {
                                 dataToFile.append(dataInPrint + "\n");
                                 Log.v("DataActivity", dataInPrint);
                             }
-                            recDataString.setLength(0);
+                            recDataString.setLength(0); //clear buffer
                         }
                     }
                 }
             }
         };
 
+        /*handle FTP upload*/
         uploadFileToFTPHandler = new Handler(){
             @Override
             public void handleMessage(Message msg) {
@@ -261,6 +265,7 @@ public class DataActivity extends AppCompatActivity {
             }
         };
 
+        /*handle file writer*/
         writeToFileHandler = new Handler(){
             @Override
             public void handleMessage(Message msg) {
@@ -302,6 +307,7 @@ public class DataActivity extends AppCompatActivity {
             }
         };
 
+        /*Handle stablish bluetooth connection*/
        stablishBluetoothConnectionHandler = new Handler(){
             @Override
             public void handleMessage(Message msg) {
@@ -318,9 +324,10 @@ public class DataActivity extends AppCompatActivity {
         };
     }
 
+    /*Start bluetooth connection */
    private void launchBluetoothReaderThread(){
        Intent intent = getIntent();
-       String address = intent.getStringExtra(MainActivity.EXTRA_DEVICE_ADDRESS);
+       String address = intent.getStringExtra(MainActivity.EXTRA_DEVICE_ADDRESS);   //get current MAC
        StablishBluetoothConnection stablishBluetoothConnection = new StablishBluetoothConnection(address);
        stablishBluetoothConnection.start();
        /*  Log.v("DataActivity", "Starting bluetooth");
@@ -353,12 +360,13 @@ public class DataActivity extends AppCompatActivity {
         }*/
     }
 
+    /*Stop bluetooth reader*/
     private void stopBluetoothReader(){
         if (mConnectedThread != null)
             mConnectedThread.write("2");    //Turn off led
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
-                btSocket.close();
+                btSocket.close();   //Close bluetooth socket
             }catch (IOException e){
 
             }
@@ -375,8 +383,7 @@ public class DataActivity extends AppCompatActivity {
         stopBluetoothReader();
     }
 
-
-
+    /*Launch openWith activity*/
     private void openWith(String path){
         if (path != null){
             File f= new File(path);
@@ -389,8 +396,8 @@ public class DataActivity extends AppCompatActivity {
         }
     }
 
+    /*Initialize all series*/
     private void initSeries(){
-        //XYSeries series1 = new SimpleXYSeries(Arrays.asList(series1Numbers), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "Series1");
         dataMapped = new HashMap<String, SimpleXYSeries>();
         String[] spinnerItems = getResources().getStringArray(R.array.items_name); //leemos valores de string
         for (int i = 0; i < spinnerItems.length; i++){
@@ -399,6 +406,7 @@ public class DataActivity extends AppCompatActivity {
         }
     }
 
+    /*Clear all series*/
     private void clearAllSeries(){
 
         if (dataMapped != null){
@@ -408,11 +416,14 @@ public class DataActivity extends AppCompatActivity {
                 while (serie.size() > 0) {
                     serie.removeLast();
                 }
-                //serie.addLast(null,0);
             }
         }
     }
 
+    /**
+     * Add serie called serieName to plot
+     * @param serieName Name of the serie
+     */
     private void addSerieToPlot(String serieName){
 
         SimpleXYSeries serie = dataMapped.get(serieName);
@@ -426,6 +437,11 @@ public class DataActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Parse a XML
+     * @param s
+     * @return ArrayList of items (name:value)
+     */
     private ArrayList<String> parseXml(String s){
        // Log.v("Parsed", s);
         XMLReader xmlReader = null;
@@ -457,6 +473,7 @@ public class DataActivity extends AppCompatActivity {
         return saxHandler.items;
     }
 
+    /*Update fields*/
     private void updateTemp(String n){
         tvTemp.setText(n + "º");
     }
