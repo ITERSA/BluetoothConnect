@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:ap="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+
+    android:orientation="vertical">
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="2dp"
+        android:paddingRight="2dp" >
+
+        <ToggleButton
+            android:text="Start report"
+            android:textOff="Play"
+            android:textOn="Stop"
+            android:checked="false"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:id="@+id/toggleRecording"
+            android:layout_marginRight="3dp"
+            android:drawableLeft="@android:drawable/ic_media_play"
+            />
+        <Spinner
+            android:id="@+id/spinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:entries="@array/items_name"
+            android:layout_toRightOf="@+id/toggleRecording"
+            android:layout_alignBaseline="@+id/toggleRecording"
+            android:layout_centerInParent="true"
+            />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:onClick="showExtraInfo"
+            android:layout_alignParentRight="true"
+            android:layout_centerInParent="true"
+            android:padding="5dp"
+            >
+            <TextView
+                android:id="@+id/tvTemp"
+                android:text="-º"
+                android:padding="5dp"
+                android:background="@drawable/my_border"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16dp"
+                android:layout_marginRight="2dp"
+                />
+            <TextView
+                android:id="@+id/tvBat"
+                android:text="-%"
+                android:padding="5dp"
+                android:background="@drawable/my_border"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16dp"
+                />
+        </LinearLayout>
+
+    </RelativeLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        >
+        <com.androidplot.xy.XYPlot
+            style="@style/APDefacto.Light"
+            android:id="@+id/plot"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            ap:title="Dinamic plot"
+            ap:rangeTitle="range"
+            ap:domainTitle="Tiempo"
+            ap:lineLabels="left|bottom"
+            ap:lineLabelRotationBottom="-45"/>
+    </LinearLayout>
+</LinearLayout>
