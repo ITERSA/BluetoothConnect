@@ -53,6 +53,9 @@ import java.util.UUID;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 
+/**
+ * This activity stablish a bluetooth connection with the selected device and show all data in graph
+ */
 //http://cursoandroidstudio.blogspot.com.es/2015/10/conexion-bluetooth-android-con-arduino.html
 public class DataActivity extends AppCompatActivity {
 

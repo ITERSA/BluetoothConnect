@@ -22,6 +22,9 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This activity scan and show all bluetooth conections enabled
+ */
 public class MainActivity extends AppCompatActivity {
 
     private  BluetoothAdapter mBluetoothAdapter;
