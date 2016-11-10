@@ -4,8 +4,14 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.LocationManager;
+import android.provider.Settings;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
@@ -19,13 +25,16 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * This activity scan and show all bluetooth conections enabled
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity{
 
     private  BluetoothAdapter mBluetoothAdapter;
 
@@ -35,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Toast globalToast;
     private ProgressBar  progressBar;
+
+
 
     private static final int REQUEST_ENABLE_BT = 1000;
 
@@ -180,6 +191,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        final LocationManager manager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+            //showGlobalToast("GPS OFF!");
+            AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+
+            // Setting Dialog Title
+            alertDialog.setTitle("Configuración GPS");
+
+            // Setting Dialog Message
+            alertDialog.setMessage("GPS no está habilitado, ¿Deseas habilitarlo?");
+
+            // Setting Icon to Dialog
+            //alertDialog.setIcon(android.R.drawable.stat_sys_gps_on);
+
+            // On pressing Settings button
+            alertDialog.setPositiveButton("Habilitar GPS", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog,int which) {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(intent);
+                    dialog.cancel();
+                }
+            });
+
+            // on pressing cancel button
+            alertDialog.setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+            alertDialog.show();
+        }
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if ((requestCode == REQUEST_ENABLE_BT)&& (resultCode == RESULT_OK))
             //Toast.makeText(getApplicationContext(),"Bluetooth activado",Toast.LENGTH_SHORT).show();
@@ -210,5 +257,4 @@ public class MainActivity extends AppCompatActivity {
         }
         return result;
     }
-
 }

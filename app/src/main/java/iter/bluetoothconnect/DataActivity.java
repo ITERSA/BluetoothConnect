@@ -8,10 +8,13 @@ import android.content.Intent;
 import android.graphics.Color;
 
 import android.graphics.Paint;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -29,6 +32,9 @@ import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -57,7 +63,7 @@ import javax.xml.parsers.SAXParserFactory;
  * This activity stablish a bluetooth connection with the selected device and show all data in graph
  */
 //http://cursoandroidstudio.blogspot.com.es/2015/10/conexion-bluetooth-android-con-arduino.html
-public class DataActivity extends AppCompatActivity {
+public class DataActivity extends AppCompatActivity  implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener{
 
     private Spinner spinner;
     private TextView tvTemp;
@@ -76,10 +82,10 @@ public class DataActivity extends AppCompatActivity {
     private StringBuilder recDataString = new StringBuilder();
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    private static final String FTP_IP = "192.168.2.121";
+    private static final String FTP_IP = "ftp.iter.es";
     private static final int FTP_PORT = 21;
-    private static final String FTP_USER = "USER";
-    private static final String FTP_PASS = "password";
+    private static final String FTP_USER = "jbarrancos";
+    private static final String FTP_PASS = "bebacafebe";
 
     private ToggleButton tgRecord;
     private StringBuilder dataToFile = new StringBuilder();
@@ -89,6 +95,9 @@ public class DataActivity extends AppCompatActivity {
 
     private ConnectedThread mConnectedThread;
     private HashMap<String, SimpleXYSeries> dataMapped;
+
+    private String startDate;
+    private GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,6 +118,8 @@ public class DataActivity extends AppCompatActivity {
                     Log.v("DataActivity", "Recording...");
                     dataToFile.setLength(0);
                     clearAllSeries();   //Inicializa series
+                    startDate = new SimpleDateFormat("HH:mm:ss dd-MM-yyyy").format(new Date());
+
                     launchBluetoothReaderThread();
                     //plot.clear();   //Limpia grafica
                 }else {
@@ -132,7 +143,7 @@ public class DataActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                // Log.v("DataActivity", "tap"+position);
-                plot.setTitle(parent.getItemAtPosition(position).toString());
+                //plot.setTitle(parent.getItemAtPosition(position).toString());
                 String text = spinner.getSelectedItem().toString();
                 plot.clear();
                 addSerieToPlot(text);
@@ -160,6 +171,15 @@ public class DataActivity extends AppCompatActivity {
 
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("###.##"));
         plot.setTitle(spinner.getSelectedItem().toString());
+
+        /*Create a instance of Google Api Client*/
+        if (mGoogleApiClient == null){
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+        }
 
         /**** Handlers ****/
         bluetoothIn = new Handler(){
@@ -276,11 +296,11 @@ public class DataActivity extends AppCompatActivity {
                         .setTitle(R.string.app_name)
                         .setIcon(R.mipmap.ic_launcher)
                         .setMessage("Datos salvados en el fichero "+ currentPath)
-                        .setNeutralButton("Guardar y Enviar al servidor", new DialogInterface.OnClickListener() {
+                        .setPositiveButton("Guardar y Enviar al servidor", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 UploadFileToFTPThread uploadFileToFTPThread = new UploadFileToFTPThread(currentPath);
-                                //TODO uploadFileToFTPThread.start();
+                                uploadFileToFTPThread.start();
                             }
                         })
                         .setNegativeButton("Cancelar y Descartar", new DialogInterface.OnClickListener() {
@@ -291,7 +311,7 @@ public class DataActivity extends AppCompatActivity {
                             }
                         })
 
-                        .setPositiveButton("Abrir con", new DialogInterface.OnClickListener() {
+                        .setNeutralButton("Abrir con", new DialogInterface.OnClickListener() {
 
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
@@ -381,6 +401,18 @@ public class DataActivity extends AppCompatActivity {
             mConnectedThread.interrupt();
         }
         stopBluetoothReader();
+    }
+
+    @Override
+    protected void onStart() {
+        mGoogleApiClient.connect();
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        mGoogleApiClient.disconnect();
+        super.onStop();
     }
 
     /*Launch openWith activity*/
@@ -484,6 +516,21 @@ public class DataActivity extends AppCompatActivity {
         dialogFragment.show(getSupportFragmentManager(), "Sample Fragment");
     }
 
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
     /************************* THREADS *************************/
 
     /**
@@ -495,7 +542,22 @@ public class DataActivity extends AppCompatActivity {
         private File file;
 
         public WriteToFileThread(String _data){
+
+            Location loc = null;
+            if ((mGoogleApiClient != null) && (mGoogleApiClient.isConnected())){
+                try {
+                  loc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+                }catch (SecurityException e){
+                    Log.e("DataActivity","Error getting activity");
+                }
+            }
+
             data = _data;
+            if (loc != null){
+                data = startDate + "\n Location: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ")\n" + data;
+            }else
+                data = startDate + "\n"+ data;
+
             String path = Environment.getExternalStorageDirectory() + File.separator  + "data";
             // Create the folder.
             File folder = new File(path);
@@ -553,7 +615,8 @@ public class DataActivity extends AppCompatActivity {
                     con.setFileType(FTP.BINARY_FILE_TYPE);
                     if (f != null) {
                         FileInputStream in = new FileInputStream(f);
-                        result = con.storeFile(f.getName(),in);
+                        //con.changeWorkingDirectory("/appflux/");
+                        result = con.storeFile("/appflux/"+f.getName(),in);
                         if (result)
                             Log.v("DataActivity", "Upload success");
                     }
