@@ -1,5 +1,6 @@
 package iter.bluetoothconnect;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -7,14 +8,20 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.os.Build;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -44,8 +51,6 @@ public class MainActivity extends AppCompatActivity{
 
     private Toast globalToast;
     private ProgressBar  progressBar;
-
-
 
     private static final int REQUEST_ENABLE_BT = 1000;
 
@@ -115,6 +120,35 @@ public class MainActivity extends AppCompatActivity{
                     }
                     list.clear();
                     mNewDevicesArrayAdapter.notifyDataSetChanged();
+                   /* if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {  // Only ask for these permissions on runtime when running Android 6.0 or higher
+                        switch (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                            case PackageManager.PERMISSION_DENIED:
+                                ((TextView) new AlertDialog.Builder(MainActivity.this)
+                                        .setTitle("Runtime Permissions up ahead")
+                                        .setMessage(Html.fromHtml("<p>To find nearby bluetooth devices please click \"Allow\" on the runtime permissions popup.</p>" +
+                                                "<p>For more info see <a href=\"http://developer.android.com/about/versions/marshmallow/android-6.0-changes.html#behavior-hardware-id\">here</a>.</p>"))
+                                        .setNeutralButton("Okay", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                if (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                                                    ActivityCompat.requestPermissions(MainActivity.this,
+                                                            new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                                                            1);
+                                                }
+                                            }
+                                        })
+                                        .show()
+                               cd          .findViewById(android.R.id.message))
+                                        .setMovementMethod(LinkMovementMethod.getInstance());       // Make the link clickable. Needs to be called after show(), in order to generate hyperlinks
+                                break;
+                            case PackageManager.PERMISSION_GRANTED:
+                                break;
+                        }
+                    }*/
+                   /* int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                            MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);*/
                     mBluetoothAdapter.startDiscovery();
                     progressBar.setVisibility(View.VISIBLE);
                 }else{
@@ -211,8 +245,8 @@ public class MainActivity extends AppCompatActivity{
             alertDialog.setPositiveButton("Habilitar GPS", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog,int which) {
                     Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                    startActivity(intent);
                     dialog.cancel();
+                    startActivity(intent);
                 }
             });
 

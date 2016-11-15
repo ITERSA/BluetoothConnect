@@ -65,20 +65,37 @@
         </LinearLayout>
 
     </RelativeLayout>
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
         >
         <com.androidplot.xy.XYPlot
             style="@style/APDefacto.Light"
             android:id="@+id/plot"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            ap:title="Dinamic plot"
+            ap:title=""
             ap:rangeTitle="range"
             ap:domainTitle="Tiempo"
             ap:lineLabels="left|bottom"
             ap:lineLabelRotationBottom="-45"/>
-    </LinearLayout>
+        <LinearLayout
+            android:id="@+id/llMenuSlope"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:visibility="gone"
+            >
+            <Button
+                android:id="@+id/btOptions"
+                android:text="Options"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:alpha="0.8"
+                />
+
+        </LinearLayout>
+    </RelativeLayout>
 </LinearLayout>

@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Canvas;
 import android.graphics.Color;
 
 import android.graphics.Paint;
@@ -20,15 +21,21 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.androidplot.Plot;
+import com.androidplot.PlotListener;
 import com.androidplot.xy.BoundaryMode;
 import com.androidplot.xy.LineAndPointFormatter;
+import com.androidplot.xy.PanZoom;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
@@ -36,12 +43,14 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
 
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -91,7 +100,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private StringBuilder dataToFile = new StringBuilder();
     /***/
     private XYPlot plot;
-   // private SimpleXYSeries series1;
+    private PanZoom panZoom;
+    private int minX;
+    private int maxX;
 
     private ConnectedThread mConnectedThread;
     private HashMap<String, SimpleXYSeries> dataMapped;
@@ -99,13 +110,21 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private String startDate;
     private GoogleApiClient mGoogleApiClient;
 
+    private LinearLayout llMenuSlope;
+    private Button btSlope;
+    private SimpleXYSeries slopeSerie;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data);
-        Log.v("DataActivity","onCreate");
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);   //keep screen ON
 
         btAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        minX = -1;
+        maxX = 1;
 
         dialogFragment = new ValuesFragment();
         progressDialogFragment = new ProgressDialogFragment();
@@ -116,23 +135,26 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked){
                     Log.v("DataActivity", "Recording...");
+                    hideSlopeMenu();
+                    plot.setTitle("");
+                    panZoom.setEnabled(false);
                     dataToFile.setLength(0);
                     clearAllSeries();   //Inicializa series
-                    startDate = new SimpleDateFormat("HH:mm:ss dd-MM-yyyy").format(new Date());
+                    plot.setDomainBoundaries(0,1,BoundaryMode.AUTO);
+                    //plot.calculateMinMaxVals();
+                    startDate = new SimpleDateFormat("HH:mm:ss_dd-MM-yyyy").format(new Date());
 
                     launchBluetoothReaderThread();
                     //plot.clear();   //Limpia grafica
                 }else {
-                    //Save to disk
-                    if (dataToFile.length() > 0){
-                        WriteToFileThread writeToFileThread = new WriteToFileThread(dataToFile.toString());
-                        writeToFileThread.start();
-                    }
-
                     stopBluetoothReader();
                     if (mConnectedThread != null)
                         mConnectedThread.interrupt();
                     Log.v("DataActivity", "Stop recording");
+                    plot.calculateMinMaxVals();
+                    panZoom.setEnabled(true);
+                    forceUpdateSlopeText();
+                    showSlopeMenu();
                 }
             }
         });
@@ -148,6 +170,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 plot.clear();
                 addSerieToPlot(text);
                 plot.redraw();
+
+                /*Update slope*/
+                if (!tgRecord.isChecked())
+                    forceUpdateSlopeText();
             }
 
             @Override
@@ -161,16 +187,43 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         tvBat = (TextView)findViewById(R.id.tvBat);
         initSeries();
        // plot.setDomainBoundaries(0, POINTS_IN_PLOT, BoundaryMode.AUTO);
-        plot.setRangeBoundaries(null,null, BoundaryMode.AUTO);
+        plot.setRangeBoundaries(0,1, BoundaryMode.AUTO);
+        plot.setDomainBoundaries(0,1, BoundaryMode.AUTO);
         plot.setDomainStepValue(3);
         plot.setLinesPerRangeLabel(5);
+        panZoom = PanZoom.attach(plot);
+        panZoom.setZoom(PanZoom.Zoom.STRETCH_HORIZONTAL);
+        panZoom.setPan(PanZoom.Pan.HORIZONTAL);
+        panZoom.setEnabled(false);
+
         //plot.setRangeBottomMin(-10);
         /*plot.setRangeTopMax(400);
         plot.setRangeTopMin(1);*/
         //plot.setRangeBottomMax(0);
+        //plot.setDomainStep(StepMode.INCREMENT_BY_VAL, 20);
 
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("###.##"));
-        plot.setTitle(spinner.getSelectedItem().toString());
+      //  plot.setTitle(spinner.getSelectedItem().toString());
+        plot.addListener(new PlotListener() {
+            @Override
+            public void onBeforeDraw(Plot source, Canvas canvas) {
+               // Log.v("BeforeDraw", "OK");
+            }
+
+            @Override
+            public void onAfterDraw(Plot source, Canvas canvas) {
+                int domainMin = (int)(Math.ceil(plot.getBounds().getMinX().doubleValue()));
+                int domainMax = (int)(Math.floor(plot.getBounds().getMaxX().doubleValue()));
+                if ((domainMin != minX) || (domainMax != maxX)){
+                    minX = domainMin;
+                    maxX = domainMax;
+                    if (!tgRecord.isChecked()){
+                        double slope = calculateSlope(spinner.getSelectedItem().toString(), minX, maxX);
+                        plot.setTitle(String.format( "Pte: %.5f", slope ));
+                    }
+                }
+            }
+        });
 
         /*Create a instance of Google Api Client*/
         if (mGoogleApiClient == null){
@@ -180,6 +233,35 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     .addApi(LocationServices.API)
                     .build();
         }
+
+        llMenuSlope = (LinearLayout)findViewById(R.id.llMenuSlope);
+        btSlope = (Button) findViewById(R.id.btOptions);
+        btSlope.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View v) {
+                AlertDialog d = new AlertDialog.Builder(DataActivity.this)
+                        .setTitle(R.string.app_name)
+                        .setIcon(R.mipmap.ic_launcher)
+                        .setMessage("¿Que desea hacer con los datos?")
+                        .setPositiveButton("Guardar y Enviar al FTP", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                if (dataToFile.length() > 0){
+                                    WriteToFileThread writeToFileThread = new WriteToFileThread(dataToFile.toString());
+                                    writeToFileThread.start();
+                                }
+                            }
+                        })
+                        .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        }).create();
+
+                d.show();
+            }
+        });
 
         /**** Handlers ****/
         bluetoothIn = new Handler(){
@@ -258,7 +340,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                                                     dialogFragment.updateTV3("Flujo \n"+xmlItem[1]+"-");
                                                 }
                                             }
-
                                         }
                                     }
                                 }
@@ -277,12 +358,13 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         uploadFileToFTPHandler = new Handler(){
             @Override
             public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            if (msg.what == 1)
-                Toast.makeText(getApplicationContext(),"Fichero subido con exito "+ (String)msg.obj, Toast.LENGTH_LONG).show();
-            else
-                Toast.makeText(getApplicationContext(),"Error subiendo el fichero "+ (String)msg.obj +" al FTP!", Toast.LENGTH_LONG).show();
-            }
+                super.handleMessage(msg);
+                Log.d("FileUpload", (String)msg.obj);
+                if (msg.what == 1)
+                    Toast.makeText(getApplicationContext(),"Fichero subido con exito "+ (String)msg.obj, Toast.LENGTH_LONG).show();
+                else
+                    Toast.makeText(getApplicationContext(),"Error subiendo el fichero "+ (String)msg.obj +" al FTP!", Toast.LENGTH_LONG).show();
+                }
         };
 
         /*handle file writer*/
@@ -292,34 +374,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             super.handleMessage(msg);
             final String currentPath = (String)msg.obj;
             if (msg.what == 1){
-                AlertDialog d = new AlertDialog.Builder(DataActivity.this)
-                        .setTitle(R.string.app_name)
-                        .setIcon(R.mipmap.ic_launcher)
-                        .setMessage("Datos salvados en el fichero "+ currentPath)
-                        .setPositiveButton("Guardar y Enviar al servidor", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                UploadFileToFTPThread uploadFileToFTPThread = new UploadFileToFTPThread(currentPath);
-                                uploadFileToFTPThread.start();
-                            }
-                        })
-                        .setNegativeButton("Cancelar y Descartar", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                File f = new File(currentPath);
-                                f.delete();
-                            }
-                        })
 
-                        .setNeutralButton("Abrir con", new DialogInterface.OnClickListener() {
-
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                openWith(currentPath);
-                            }
-                        }).create();
-
-                d.show();
+                UploadFileToFTPThread uploadFileToFTPThread = new UploadFileToFTPThread(currentPath);
+                uploadFileToFTPThread.start();
+                hideSlopeMenu();
             }else{
                 Toast.makeText(getApplicationContext(),"Error generando el fichero "+ (String)msg.obj, Toast.LENGTH_LONG).show();
             }
@@ -442,7 +500,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private void clearAllSeries(){
 
         if (dataMapped != null){
-
             for (SimpleXYSeries serie : dataMapped.values()){
                 //remove items in plot
                 while (serie.size() > 0) {
@@ -469,6 +526,61 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         }
     }
 
+    private void forceUpdateSlopeText(){
+        /*Update slope*/
+        minX = (int)(Math.ceil(plot.getBounds().getMinX().doubleValue()));
+        maxX = (int)(Math.floor(plot.getBounds().getMaxX().doubleValue()));
+        double slope = calculateSlope(spinner.getSelectedItem().toString(), minX, maxX);
+        plot.setTitle(String.format( "Pte: %.5f", slope ));
+    }
+
+    /**
+     * Calculate slope
+     * @param serieName String
+     * @param domainMin int
+     * @param domainMax int
+     * @return double slope value
+     */
+    private double calculateSlope(String serieName, int domainMin, int domainMax){
+
+        double result = 0.0;
+        SimpleXYSeries serie = dataMapped.get(serieName);
+        if ((serie.size() > 1) && (domainMin < domainMax)){
+            int size = domainMax;
+            if (domainMax > serie.size())
+                size = serie.size();
+            SimpleRegression simpleRegression = new SimpleRegression(true);
+            for (int i = domainMin; i < size; i++){
+                //TODO revise range
+                simpleRegression.addData(serie.getX(i).doubleValue(), serie.getY(i).doubleValue());
+            }
+            result = simpleRegression.getSlope();
+            Log.v("Slope",""+domainMin + " , "+domainMax + "  Slope: "+ result);
+        }
+        //Toast.makeText(DataActivity.this, "Slope range"+domainMin + " - "+domainMax ,Toast.LENGTH_LONG).show();
+        return result;
+    }
+
+    /**
+     *
+     */
+    private void showSlopeMenu(){
+        llMenuSlope.setVisibility(View.VISIBLE);
+    }
+
+    private void hideSlopeMenu(){
+        llMenuSlope.setVisibility(View.GONE);
+    }
+
+    /*private void removeSlope(){
+        if (slopeSerie != null)
+            plot.removeSeries(slopeSerie);
+    }
+
+    private void initSlopeSerie(){
+        ArrayList<Number> values = new ArrayList<Number>();
+        slopeSerie = new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "slope");
+    }*/
     /**
      * Parse a XML
      * @param s
@@ -548,13 +660,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 try {
                   loc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
                 }catch (SecurityException e){
-                    Log.e("DataActivity","Error getting activity");
+                    Log.e("DataActivity","Error getting location");
                 }
             }
-
             data = _data;
             if (loc != null){
-                data = startDate + "\n Location: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ")\n" + data;
+                data = startDate + "\nLocation: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ")\n" + data;
             }else
                 data = startDate + "\n"+ data;
 
@@ -563,9 +674,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             File folder = new File(path);
             folder.mkdirs();
             // Create the file.
-            String date = new SimpleDateFormat("HH-mm-ss-dd-MM-yyyy").format(new Date());
-            file = new File(folder, "data_"+ date+".txt");
-            data += date;
+            //String date = new SimpleDateFormat("HH-mm-ss_dd-MM-yyyy").format(new Date());
+            String fileName = startDate.replace(":","-");
+            file = new File(folder, "data_"+ fileName+".txt");
             //TODO adjuntar temperatura y demas valores
         }
 
@@ -578,7 +689,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 writer.append(data);
                 writer.flush();
                 writer.close();
-                Log.v("DataActivity","File saved to "+file.getAbsolutePath());
+                Log.d("DataActivity","File saved to "+file.getAbsolutePath());
                 //Log.v("DataActivity", data);
                 status = 1;
             }catch (IOException e){
@@ -587,6 +698,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             Message msg = new Message();
             msg.what = status;
             msg.obj = file.getAbsolutePath();
+            Log.d("File", file.getAbsolutePath());
             if (writeToFileHandler != null)
                 writeToFileHandler.sendMessage(msg);
         }
@@ -607,25 +719,31 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             FTPClient con = null;
             boolean result = false;
             File f = new File(path);
-            try {
-                con = new FTPClient();
-                con.connect(FTP_IP,FTP_PORT);
-                if (con.login(FTP_USER,FTP_PASS)){
-                    con.enterLocalPassiveMode();
-                    con.setFileType(FTP.BINARY_FILE_TYPE);
-                    if (f != null) {
-                        FileInputStream in = new FileInputStream(f);
-                        //con.changeWorkingDirectory("/appflux/");
-                        result = con.storeFile("/appflux/"+f.getName(),in);
+            if (f.exists()){
+                try {
+                    con = new FTPClient();
+                    con.connect(FTP_IP,FTP_PORT);
+                    if (con.login(FTP_USER,FTP_PASS)){
+                        con.enterLocalPassiveMode();
+                        con.setFileType(FTP.BINARY_FILE_TYPE);
+                        BufferedInputStream buffIn=null;
+                        buffIn=new BufferedInputStream(new FileInputStream(f));
+                       // FileInputStream in = new FileInputStream(f);
+                        con.changeWorkingDirectory("/appflux");
+                        result = con.storeFile(f.getName(),buffIn);
+                        buffIn.close();
                         if (result)
-                            Log.v("DataActivity", "Upload success");
-                    }
-                    con.logout();
-                    con.disconnect();
+                            Log.v("ftp", "Upload success");
+                        con.logout();
+                        con.disconnect();
+                    }else
+                        Log.e("ftp", "login error");
+                }catch (IOException e){
+                    e.getCause().printStackTrace();
+                    Log.e("ftp", "Upload fails!!");
                 }
-            }catch (IOException e){
-                e.printStackTrace();
-            }
+            }else
+                Log.d("ftp","File not exists");
             Message msg = new Message();
             if (result)
                 msg.what = 1;
