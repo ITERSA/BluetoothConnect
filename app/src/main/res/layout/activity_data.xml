@@ -90,7 +90,7 @@
             >
             <Button
                 android:id="@+id/btOptions"
-                android:text="Options"
+                android:text="Guardar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:alpha="0.8"

@@ -10,7 +10,6 @@ import android.graphics.Color;
 
 import android.graphics.Paint;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -111,9 +110,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private GoogleApiClient mGoogleApiClient;
 
     private LinearLayout llMenuSlope;
-    private Button btSlope;
-    private SimpleXYSeries slopeSerie;
-
+    private Button btSaveData;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,7 +132,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked){
                     Log.v("DataActivity", "Recording...");
-                    hideSlopeMenu();
+                    hideOptionMenu();
                     plot.setTitle("");
                     panZoom.setEnabled(false);
                     dataToFile.setLength(0);
@@ -154,7 +151,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     plot.calculateMinMaxVals();
                     panZoom.setEnabled(true);
                     forceUpdateSlopeText();
-                    showSlopeMenu();
+                    showOptionMenu();
                 }
             }
         });
@@ -189,7 +186,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
        // plot.setDomainBoundaries(0, POINTS_IN_PLOT, BoundaryMode.AUTO);
         plot.setRangeBoundaries(0,1, BoundaryMode.AUTO);
         plot.setDomainBoundaries(0,1, BoundaryMode.AUTO);
-        plot.setDomainStepValue(3);
+        plot.setDomainStepValue(5);
         plot.setLinesPerRangeLabel(5);
         panZoom = PanZoom.attach(plot);
         panZoom.setZoom(PanZoom.Zoom.STRETCH_HORIZONTAL);
@@ -212,6 +209,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
             @Override
             public void onAfterDraw(Plot source, Canvas canvas) {
+                //plot.calculateMinMaxVals();
                 int domainMin = (int)(Math.ceil(plot.getBounds().getMinX().doubleValue()));
                 int domainMax = (int)(Math.floor(plot.getBounds().getMaxX().doubleValue()));
                 if ((domainMin != minX) || (domainMax != maxX)){
@@ -235,31 +233,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         }
 
         llMenuSlope = (LinearLayout)findViewById(R.id.llMenuSlope);
-        btSlope = (Button) findViewById(R.id.btOptions);
-        btSlope.setOnClickListener(new View.OnClickListener() {
+        btSaveData = (Button) findViewById(R.id.btOptions);
+        btSaveData.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
-                AlertDialog d = new AlertDialog.Builder(DataActivity.this)
-                        .setTitle(R.string.app_name)
-                        .setIcon(R.mipmap.ic_launcher)
-                        .setMessage("¿Que desea hacer con los datos?")
-                        .setPositiveButton("Guardar y Enviar al FTP", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                if (dataToFile.length() > 0){
-                                    WriteToFileThread writeToFileThread = new WriteToFileThread(dataToFile.toString());
-                                    writeToFileThread.start();
-                                }
-                            }
-                        })
-                        .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        }).create();
-
-                d.show();
+            showSaveDialog();
             }
         });
 
@@ -359,7 +337,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             @Override
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
-                Log.d("FileUpload", (String)msg.obj);
                 if (msg.what == 1)
                     Toast.makeText(getApplicationContext(),"Fichero subido con exito "+ (String)msg.obj, Toast.LENGTH_LONG).show();
                 else
@@ -374,14 +351,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             super.handleMessage(msg);
             final String currentPath = (String)msg.obj;
             if (msg.what == 1){
-
                 UploadFileToFTPThread uploadFileToFTPThread = new UploadFileToFTPThread(currentPath);
                 uploadFileToFTPThread.start();
-                hideSlopeMenu();
+                hideOptionMenu();
             }else{
                 Toast.makeText(getApplicationContext(),"Error generando el fichero "+ (String)msg.obj, Toast.LENGTH_LONG).show();
             }
-
             }
         };
 
@@ -474,7 +449,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     }
 
     /*Launch openWith activity*/
-    private void openWith(String path){
+   /* private void openWith(String path){
         if (path != null){
             File f= new File(path);
             if (f != null){
@@ -484,7 +459,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 startActivity(chooser);
             }
         }
-    }
+    }*/
 
     /*Initialize all series*/
     private void initSeries(){
@@ -518,8 +493,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         SimpleXYSeries serie = dataMapped.get(serieName);
         if (serie != null){
             //LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.RED, Color.RED, null, null);
-            LineAndPointFormatter series1Format = new LineAndPointFormatter(
-                    Color.rgb(200, 0, 0), null, null, null);
+            //LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.rgb(200, 0, 0), null, null, null);
+            LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.rgb(150, 0, 0), null, Color.argb(125, 100, 0, 0), null);
             series1Format.getLinePaint().setStrokeJoin(Paint.Join.ROUND);
             series1Format.getLinePaint().setStrokeWidth(7);
             plot.addSeries(serie, series1Format);
@@ -528,6 +503,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
     private void forceUpdateSlopeText(){
         /*Update slope*/
+       // plot.calculateMinMaxVals();
         minX = (int)(Math.ceil(plot.getBounds().getMinX().doubleValue()));
         maxX = (int)(Math.floor(plot.getBounds().getMaxX().doubleValue()));
         double slope = calculateSlope(spinner.getSelectedItem().toString(), minX, maxX);
@@ -537,8 +513,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     /**
      * Calculate slope
      * @param serieName String
-     * @param domainMin int
-     * @param domainMax int
+     * @param domainMin int min value X axis
+     * @param domainMax int max value X axis
      * @return double slope value
      */
     private double calculateSlope(String serieName, int domainMin, int domainMax){
@@ -564,12 +540,19 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     /**
      *
      */
-    private void showSlopeMenu(){
+    private void showOptionMenu(){
         llMenuSlope.setVisibility(View.VISIBLE);
     }
 
-    private void hideSlopeMenu(){
+    private void hideOptionMenu(){
         llMenuSlope.setVisibility(View.GONE);
+    }
+
+    private boolean isOptionsMenuShowed(){
+        boolean result = true;
+        if (llMenuSlope.getVisibility() == View.GONE)
+            result = false;
+        return result;
     }
 
     /*private void removeSlope(){
@@ -617,6 +600,32 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         return saxHandler.items;
     }
 
+    private void showSaveDialog(){
+        if (isOptionsMenuShowed()){
+            AlertDialog d = new AlertDialog.Builder(DataActivity.this)
+                    .setTitle(R.string.app_name)
+                    .setIcon(android.R.drawable.ic_menu_save)
+                    .setMessage("¿Desea Guardar y Enviar los datos al FTP?")
+                    .setPositiveButton("Si", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if (dataToFile.length() > 0){
+                                WriteToFileThread writeToFileThread = new WriteToFileThread(dataToFile.toString());
+                                writeToFileThread.start();
+                                dialog.dismiss();
+                            }
+                        }
+                    })
+                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    }).create();
+            d.show();
+        }
+    }
+
     /*Update fields*/
     private void updateTemp(String n){
         tvTemp.setText(n + "º");
@@ -625,7 +634,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         tvBat.setText(n+"%");
     }
     public void showExtraInfo(View v){
-        dialogFragment.show(getSupportFragmentManager(), "Sample Fragment");
+        dialogFragment.show(getSupportFragmentManager(), "InfoFragment");
     }
 
     @Override

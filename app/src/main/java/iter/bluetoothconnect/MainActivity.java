@@ -245,7 +245,7 @@ public class MainActivity extends AppCompatActivity{
             alertDialog.setPositiveButton("Habilitar GPS", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog,int which) {
                     Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                    dialog.cancel();
+                    dialog.dismiss();
                     startActivity(intent);
                 }
             });
@@ -253,7 +253,7 @@ public class MainActivity extends AppCompatActivity{
             // on pressing cancel button
             alertDialog.setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
-                    dialog.cancel();
+                    dialog.dismiss();
                 }
             });
             alertDialog.show();
