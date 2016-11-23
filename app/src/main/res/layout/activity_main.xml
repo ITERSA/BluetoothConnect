@@ -42,6 +42,7 @@
         android:id="@+id/button" />
 
     <LinearLayout
+        android:id="@+id/llListView"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -49,7 +50,7 @@
         android:background="@android:color/holo_orange_light"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@+id/btSendData"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
         android:layout_marginTop="13dp">
@@ -58,4 +59,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </LinearLayout>
+    <Button
+        android:id="@+id/btSendData"
+        android:layout_margin="10dp"
+        android:layout_alignParentBottom="true"
+        android:text="Enviar datos antiguos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        />
 </RelativeLayout>

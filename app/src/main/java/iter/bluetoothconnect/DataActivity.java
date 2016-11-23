@@ -3,8 +3,10 @@ package iter.bluetoothconnect;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 
@@ -60,8 +62,12 @@ import java.io.StringReader;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -73,6 +79,7 @@ import javax.xml.parsers.SAXParserFactory;
 //http://cursoandroidstudio.blogspot.com.es/2015/10/conexion-bluetooth-android-con-arduino.html
 public class DataActivity extends AppCompatActivity  implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener{
 
+    public static final String FILE_LIST = "file_list";
     private Spinner spinner;
     private TextView tvTemp;
     private TextView tvBat;
@@ -90,10 +97,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private StringBuilder recDataString = new StringBuilder();
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    private static final String FTP_IP = "ftp.iter.es";
-    private static final int FTP_PORT = 21;
-    private static final String FTP_USER = "jbarrancos";
-    private static final String FTP_PASS = "bebacafebe";
+    public static final String FTP_IP = "ftp.iter.es";
+    public static final int FTP_PORT = 21;
+    public static final String FTP_USER = "jbarrancos";
+    public static final String FTP_PASS = "bebacafebe";
 
     private ToggleButton tgRecord;
     private StringBuilder dataToFile = new StringBuilder();
@@ -336,11 +343,14 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         uploadFileToFTPHandler = new Handler(){
             @Override
             public void handleMessage(Message msg) {
-                super.handleMessage(msg);
-                if (msg.what == 1)
-                    Toast.makeText(getApplicationContext(),"Fichero subido con exito "+ (String)msg.obj, Toast.LENGTH_LONG).show();
-                else
-                    Toast.makeText(getApplicationContext(),"Error subiendo el fichero "+ (String)msg.obj +" al FTP!", Toast.LENGTH_LONG).show();
+            super.handleMessage(msg);
+            String fileName =     (String)msg.obj;
+            if (msg.what == 1)
+                Toast.makeText(getApplicationContext(),"Fichero subido con exito "+fileName, Toast.LENGTH_LONG).show();
+            else{
+                Toast.makeText(getApplicationContext(),"Error subiendo el fichero "+ fileName +" al FTP!", Toast.LENGTH_LONG).show();
+                updateFileList(fileName);
+            }
                 }
         };
 
@@ -531,6 +541,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 simpleRegression.addData(serie.getX(i).doubleValue(), serie.getY(i).doubleValue());
             }
             result = simpleRegression.getSlope();
+
             Log.v("Slope",""+domainMin + " , "+domainMax + "  Slope: "+ result);
         }
         //Toast.makeText(DataActivity.this, "Slope range"+domainMin + " - "+domainMax ,Toast.LENGTH_LONG).show();
@@ -637,6 +648,23 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         dialogFragment.show(getSupportFragmentManager(), "InfoFragment");
     }
 
+    /**
+     * List containing file names
+     * @param file String- File path
+     */
+    private void updateFileList(String file){
+        SharedPreferences sharedPref = getSharedPreferences("Configs",Context.MODE_PRIVATE);
+        Set<String> set = sharedPref.getStringSet(FILE_LIST, new HashSet<String>());
+        if (!set.contains(file)){
+            set.add(file);
+        }
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.remove(FILE_LIST);
+        editor.commit();
+        editor.putStringSet(FILE_LIST, set);
+        editor.apply();
+    }
+
     @Override
     public void onConnected(@Nullable Bundle bundle) {
 
@@ -674,11 +702,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             }
             data = _data;
             if (loc != null){
-                data = startDate + "\nLocation: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ")\n" + data;
+                data = startDate + "\nLocation: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ") Error: "+ loc.getAccuracy()+" m\n" + data;
             }else
                 data = startDate + "\n"+ data;
 
-            String path = Environment.getExternalStorageDirectory() + File.separator  + "data";
+            String path = Environment.getExternalStorageDirectory() + File.separator  + "stationData";
             // Create the folder.
             File folder = new File(path);
             folder.mkdirs();

@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
@@ -36,7 +37,9 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * This activity scan and show all bluetooth conections enabled
@@ -53,6 +56,8 @@ public class MainActivity extends AppCompatActivity{
     private ProgressBar  progressBar;
 
     private static final int REQUEST_ENABLE_BT = 1000;
+
+    private Button btUploadFiles;
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -107,6 +112,22 @@ public class MainActivity extends AppCompatActivity{
             }
         });
         globalToast = Toast.makeText(getApplicationContext(), null, Toast.LENGTH_LONG);
+        btUploadFiles = (Button)findViewById(R.id.btSendData);
+        btUploadFiles.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences sharedPref = getSharedPreferences("Configs",Context.MODE_PRIVATE);
+                Set<String> set = sharedPref.getStringSet(DataActivity.FILE_LIST, new HashSet<String>());
+                if (set.size() > 0){
+                    FtpFileUpload uploader = new FtpFileUpload(set, MainActivity.this);
+                    uploader.execute();
+                    //TODO if files uploaded, turn button disable
+                }else{
+                    btUploadFiles.setEnabled(false);
+                    showGlobalToast("No hay ficheros para enviar");
+                }
+            }
+        });
         Button btDiscover = (Button) findViewById(R.id.button);
 
         btDiscover.setOnClickListener(new View.OnClickListener() {
@@ -222,6 +243,7 @@ public class MainActivity extends AppCompatActivity{
             mNewDevicesArrayAdapter.notifyDataSetChanged();
             progressBar.setVisibility(View.GONE);
         }
+        checkIfUploadFiles();
     }
 
     @Override
@@ -290,5 +312,15 @@ public class MainActivity extends AppCompatActivity{
             }
         }
         return result;
+    }
+
+    private void checkIfUploadFiles(){
+        SharedPreferences sharedPref = getSharedPreferences("Configs",Context.MODE_PRIVATE);
+        Set<String> set = sharedPref.getStringSet(DataActivity.FILE_LIST, new HashSet<String>());
+        if (set.size() > 0){
+            btUploadFiles.setEnabled(true);
+        }
+        else
+            btUploadFiles.setEnabled(false);
     }
 }
