@@ -47,6 +47,8 @@ import com.google.android.gms.location.LocationServices;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
@@ -591,6 +593,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         } catch (ParserConfigurationException e) {
             e.printStackTrace();
             return null;
+
+
         }
         // create a SAXXMLHandler
         SaxXMLHandler saxHandler = new SaxXMLHandler();
@@ -663,6 +667,39 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         editor.commit();
         editor.putStringSet(FILE_LIST, set);
         editor.apply();
+    }
+
+    private void loadJson( JSONObject object){
+           // JSONObject object = new JSONObject(json); //Creamos un objeto JSON a partir de la cadena
+        Iterator<String> iter = object.keys();
+        while (iter.hasNext()) {
+            String key = iter.next();
+            try {
+                Object value = object.get(key);
+                if (value instanceof JSONObject){
+                    loadJson((JSONObject)value);
+                }else {
+                    SimpleXYSeries serie = dataMapped.get(key);
+                    Double item = (Double)object.getDouble(key);
+                    if (serie != null) {
+                        if (!item.isNaN()) {
+                            try {
+                                Number n = (Number)item;
+                                if (n != null)
+                                    serie.addLast(null, n);
+                            } catch (NumberFormatException e) {
+                                serie.addLast(null, 0);
+                            } catch (NullPointerException e) {
+                                serie.addLast(null, 0);
+                            }
+                        } else
+                            serie.addLast(null, 0);
+                    }
+                }
+            } catch (JSONException e) {
+                // Something went wrong!
+            }
+        }
     }
 
     @Override
