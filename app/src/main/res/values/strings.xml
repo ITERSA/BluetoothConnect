@@ -3,7 +3,12 @@
     <string-array name="items_name">
         <item>H2O</item>
         <item>A00</item>
-        <item>CO2</item>
+        <item>co2</item>
+        <item>celltemp</item>
+        <item>cellpres</item>
+        <item>co2abs</item>
+        <item>ivolt</item>
+        <item>raw</item>
         <item>A01</item>
         <item>A02</item>
         <item>A03</item>

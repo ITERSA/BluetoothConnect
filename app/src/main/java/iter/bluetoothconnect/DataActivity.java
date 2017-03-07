@@ -258,19 +258,23 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 if (msg.what == handlerState){
                     String readMessage = (String)msg.obj;
                     recDataString.append(readMessage);
-                    int endOfLineIndex = recDataString.lastIndexOf("]");
-                    int initOfLineIndex =  recDataString.lastIndexOf("[");
+                    int endOfLineIndex = recDataString.indexOf("\n");
+
                     if (endOfLineIndex > 0) {
                         //String dataInPrint = recDataString.substring(0, endOfLineIndex);
-                        //Quitamos corchetes de inicio y final
-                        String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex);
-                        String[] values = dataInPrint.split(",");
+                        //Quitamos corchetes de inicio([) y final (]/r/n)
+                        int initOfLineIndex =  recDataString.indexOf("[");
+                        String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex - 2);
+                        Log.v("DataInPrint_",dataInPrint);
+                        //String[] values = dataInPrint.split(",");
 
                         // if toggle button is checked, then add data parsed to series for showing in Plot
                         if (tgRecord.isChecked()) {
 
+                            customParser(",", ":", dataInPrint);
+                            /*****************************/
                             //Insert values into map
-                            for (int i = 0; i < values.length; i++) {
+                            /*for (int i = 0; i < values.length; i++) {
                                 String[] items = values[i].split(":");
                                 if (!items[0].contentEquals("LIC")) {
                                     SimpleXYSeries serie = dataMapped.get(items[0]);
@@ -333,7 +337,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                                 plot.redraw();
                                 dataToFile.append(dataInPrint + "\n");
                                 Log.v("DataActivity", dataInPrint);
-                            }
+                            }*/
+                            /**/
+                            plot.redraw();
+                            dataToFile.append(dataInPrint + "\n");
+                            Log.v("DataActivity", dataInPrint);
+                            /***/
                             recDataString.setLength(0); //clear buffer
                         }
                     }
@@ -669,7 +678,52 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         editor.apply();
     }
 
-    private void loadJson( JSONObject object){
+    /**
+     * Insert key and value into a global hashMap dataMapped
+     * @param key String with
+     * @param value String with value
+     */
+    private void insertIntoMap(String key, String value){
+        SimpleXYSeries serie = dataMapped.get(key);
+        if (serie != null) {
+            if ((!value.contains("NAN")) && (value.length() > 0)) {
+                try {
+                    Number n = Double.parseDouble(value);
+                    if (n != null)
+                        serie.addLast(null, n);
+                } catch (NumberFormatException e) {
+                    serie.addLast(null, 0);
+                } catch (NullPointerException e) {
+                    serie.addLast(null, 0);
+                }
+            } else
+                serie.addLast(null, 0);
+        }
+    }
+
+    //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083,3641255]]
+    //initial divider1 = ',' divider2 = ':'
+    private void customParser(String divider1, String divider2, String data){
+
+        String[] dataList = data.split(divider1);
+        if (dataList != null){
+            for (String pair : dataList) {
+                String[] key_val = pair.split(divider2);
+                if (key_val[1].startsWith("[")){
+                    //if start with '[' , remove brackets and parse _ and |
+                    if (key_val[1].length() > 2){
+                        String valueList = key_val[1].substring(1, key_val[1].length() - 2);
+                        customParser("_", "\\|", valueList);
+                    }
+                }else {
+                    //Insert key and value
+                    insertIntoMap(key_val[0], key_val[1]);
+                }
+            }
+        }
+    }
+
+   /* private void loadJson( JSONObject object){
            // JSONObject object = new JSONObject(json); //Creamos un objeto JSON a partir de la cadena
         Iterator<String> iter = object.keys();
         while (iter.hasNext()) {
@@ -700,7 +754,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 // Something went wrong!
             }
         }
-    }
+    }*/
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
