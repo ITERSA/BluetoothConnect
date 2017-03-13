@@ -24,10 +24,12 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -40,10 +42,12 @@ import com.androidplot.xy.PanZoom;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
+import com.androidplot.xy.ZoomEstimator;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
 
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -139,29 +143,34 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         tgRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked){
-                    Log.v("DataActivity", "Recording...");
-                    hideOptionMenu();
-                    plot.setTitle("");
-                    panZoom.setEnabled(false);
-                    dataToFile.setLength(0);
-                    clearAllSeries();   //Inicializa series
-                    plot.setDomainBoundaries(0,1,BoundaryMode.AUTO);
-                    //plot.calculateMinMaxVals();
-                    startDate = new SimpleDateFormat("HH:mm:ss_dd-MM-yyyy").format(new Date());
+            if (isChecked){
+                Log.v("DataActivity", "Recording...");
+                hideOptionMenu();
+                plot.setTitle("");
+                panZoom.setEnabled(false);
+                dataToFile.setLength(0);
+                clearAllSeries();   //Inicializa series
+                plot.setDomainBoundaries(0,1,BoundaryMode.AUTO);
+                //change left drawable
+                int imgResource = android.R.drawable.ic_media_pause;
+                tgRecord.setCompoundDrawablesWithIntrinsicBounds(imgResource, 0, 0, 0);
+                startDate = new SimpleDateFormat("HH:mm:ss_dd-MM-yyyy").format(new Date());
 
-                    launchBluetoothReaderThread();
-                    //plot.clear();   //Limpia grafica
-                }else {
-                    stopBluetoothReader();
-                    if (mConnectedThread != null)
-                        mConnectedThread.interrupt();
-                    Log.v("DataActivity", "Stop recording");
-                    plot.calculateMinMaxVals();
-                    panZoom.setEnabled(true);
-                    forceUpdateSlopeText();
-                    showOptionMenu();
-                }
+                launchBluetoothReaderThread();
+                //plot.clear();   //Limpia grafica
+            }else {
+                //change left drawable
+                int imgResource = android.R.drawable.ic_media_play;
+                tgRecord.setCompoundDrawablesWithIntrinsicBounds(imgResource, 0, 0, 0);
+                stopBluetoothReader();
+                if (mConnectedThread != null)
+                    mConnectedThread.interrupt();
+                Log.v("DataActivity", "Stop recording");
+               // plot.calculateMinMaxVals();
+                panZoom.setEnabled(true);
+                forceUpdateSlopeText();
+                showOptionMenu();
+            }
             }
         });
 
@@ -198,9 +207,14 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         plot.setDomainStepValue(5);
         plot.setLinesPerRangeLabel(5);
         panZoom = PanZoom.attach(plot);
+       //panZoom = PanZoom.attach(plot, PanZoom.Pan.HORIZONTAL, PanZoom.Zoom.STRETCH_HORIZONTAL, PanZoom.ZoomLimit.MIN_TICKS);
         panZoom.setZoom(PanZoom.Zoom.STRETCH_HORIZONTAL);
         panZoom.setPan(PanZoom.Pan.HORIZONTAL);
         panZoom.setEnabled(false);
+        plot.getOuterLimits().set(0,1, 0, 1000);
+        plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#####.##"));
+        //plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).setFormat(new DecimalFormat("###"));
+        //plot.getRegistry().setEstimator(new ZoomEstimator());
 
         //plot.setRangeBottomMin(-10);
         /*plot.setRangeTopMax(400);
@@ -208,7 +222,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         //plot.setRangeBottomMax(0);
         //plot.setDomainStep(StepMode.INCREMENT_BY_VAL, 20);
 
-        plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("###.##"));
+        plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("###.#"));
       //  plot.setTitle(spinner.getSelectedItem().toString());
         plot.addListener(new PlotListener() {
             @Override
@@ -226,7 +240,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     maxX = domainMax;
                     if (!tgRecord.isChecked()){
                         double slope = calculateSlope(spinner.getSelectedItem().toString(), minX, maxX);
-                        plot.setTitle(String.format( "Pte: %.5f", slope ));
+                        double correlation = calculatePearsonCorrelation(spinner.getSelectedItem().toString(), minX, maxX);
+                        plot.setTitle(String.format( "Pte: %.5f \n Crl: %.5f", slope, correlation));
                     }
                 }
             }
@@ -338,9 +353,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                                 dataToFile.append(dataInPrint + "\n");
                                 Log.v("DataActivity", dataInPrint);
                             }*/
-                            /**/
+                            /*Fixed bug: Update zoomable range to current max X (visible)*/
+                            Number n = maxX + 1;
+                            plot.getOuterLimits().set(0, n, 0, 1000);
                             plot.redraw();
-                            dataToFile.append(dataInPrint + "\n");
+                            dataToFile.append(dataInPrint + " - " + new SimpleDateFormat("HH:mm:ss").format(new Date())+ "\n");
+                            updateInfoWidget();
                             Log.v("DataActivity", dataInPrint);
                             /***/
                             recDataString.setLength(0); //clear buffer
@@ -437,7 +455,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     /*Stop bluetooth reader*/
     private void stopBluetoothReader(){
         if (mConnectedThread != null)
-            mConnectedThread.write("2");    //Turn off led
+            mConnectedThread.write("0");    //Turn off led
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
                 btSocket.close();   //Close bluetooth socket
@@ -451,7 +469,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     protected void onDestroy() {
         super.onDestroy();
         if (mConnectedThread != null) {
-            mConnectedThread.write("2");
+            mConnectedThread.write("0");
             mConnectedThread.interrupt();
         }
         stopBluetoothReader();
@@ -490,6 +508,28 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             ArrayList<Number> values = new ArrayList<Number>();
             dataMapped.put(spinnerItems[i],new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, spinnerItems[i]));
         }
+    }
+
+    private void initSerie(String serieName){
+        if (dataMapped == null){
+            dataMapped = new HashMap<String, SimpleXYSeries>();
+        }
+        ArrayList<Number> values = new ArrayList<Number>();
+        dataMapped.put(serieName, new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, serieName));
+    }
+
+    private void updateSpinner(String name){
+        SpinnerAdapter spinnerAdapter = spinner.getAdapter();
+        int size = spinnerAdapter.getCount();
+        ArrayList<String> listSpinner = new ArrayList<>();
+        for (int i = 0; i < size; i++){
+            listSpinner.add(spinnerAdapter.getItem(i).toString());
+        }
+        listSpinner.add(name);
+        ArrayAdapter<String> spinnerAdapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
+        spinnerAdapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(spinnerAdapter2);
+        spinnerAdapter2.notifyDataSetChanged();
     }
 
     /*Clear all series*/
@@ -559,6 +599,25 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         return result;
     }
 
+    private double calculatePearsonCorrelation(String serieName, int domainMin, int domainMax){
+        double result = 0.0;
+        SimpleXYSeries serie = dataMapped.get(serieName);
+        if ((serie.size() > 1) && (domainMin < domainMax)) {
+            int size = domainMax;
+            int serieSize =  serie.size();
+            if (domainMax > serieSize)
+                size = serieSize;
+            double[] x = new double[serieSize];
+            double[] y = new double[serieSize];
+            for (int i = domainMin; i < size; i++){
+                x[i] = serie.getX(i).doubleValue();
+                y[i] = serie.getY(i).doubleValue();
+            }
+            result = new PearsonsCorrelation().correlation(x, y);
+        }
+        return result;
+    }
+
     /**
      *
      */
@@ -588,10 +647,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     }*/
     /**
      * Parse a XML
-     * @param s
      * @return ArrayList of items (name:value)
      */
-    private ArrayList<String> parseXml(String s){
+  /*  private ArrayList<String> parseXml(String s){
        // Log.v("Parsed", s);
         XMLReader xmlReader = null;
         try {
@@ -622,7 +680,37 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             return null;
         }
         return saxHandler.items;
-    }
+    }*/
+
+  private void updateInfoWidget(){
+
+      Number n;
+      SimpleXYSeries serie = dataMapped.get("celltemp");
+      if (serie == null){
+          n = 0;
+      }else{
+          if (serie.size() > 0) {
+              n = serie.getY(serie.size() - 1);
+              if (n == null)
+                  n = 0;
+          }else
+              n = 0;
+      updateTemp(n);
+      }
+
+      serie = dataMapped.get("ivolt");
+      if (serie == null){
+          n = 0;
+      }else{
+          if ( serie.size() > 0){
+            n = serie.getY(serie.size() - 1);
+            if (n == null)
+                n = 0;
+          }else
+              n = 0;
+      }
+      updateBattery(n);
+  }
 
     private void showSaveDialog(){
         if (isOptionsMenuShowed()){
@@ -651,11 +739,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     }
 
     /*Update fields*/
-    private void updateTemp(String n){
-        tvTemp.setText(n + "º");
+    private void updateTemp(Number n){
+        tvTemp.setText(String.format( "%.1f", n.doubleValue())+"º");
     }
-    private void updateBattery(String n){
-        tvBat.setText(n+"%");
+    private void updateBattery(Number n){
+
+        tvBat.setText(String.format( "%.1f", n.doubleValue() ) + "%");
     }
     public void showExtraInfo(View v){
         dialogFragment.show(getSupportFragmentManager(), "InfoFragment");
@@ -685,23 +774,27 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
      */
     private void insertIntoMap(String key, String value){
         SimpleXYSeries serie = dataMapped.get(key);
-        if (serie != null) {
-            if ((!value.contains("NAN")) && (value.length() > 0)) {
-                try {
-                    Number n = Double.parseDouble(value);
-                    if (n != null)
-                        serie.addLast(null, n);
-                } catch (NumberFormatException e) {
-                    serie.addLast(null, 0);
-                } catch (NullPointerException e) {
-                    serie.addLast(null, 0);
-                }
-            } else
-                serie.addLast(null, 0);
+        if (serie == null) {
+            initSerie(key);
+            serie = dataMapped.get(key);
+            updateSpinner(key);
         }
+        if ((!value.contains("NAN")) && (value.length() > 0)) {
+            try {
+                Number n = Double.parseDouble(value);
+                if (n != null)
+                    serie.addLast(null, n);
+            } catch (NumberFormatException e) {
+                serie.addLast(null, 0);
+            } catch (NullPointerException e) {
+                serie.addLast(null, 0);
+            }
+        } else
+            serie.addLast(null, 0);
+
     }
 
-    //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083,3641255]]
+    //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
     //initial divider1 = ',' divider2 = ':'
     private void customParser(String divider1, String divider2, String data){
 

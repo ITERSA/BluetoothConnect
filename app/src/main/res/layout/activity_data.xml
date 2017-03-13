@@ -75,7 +75,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             ap:title=""
-            ap:rangeTitle="range"
+            ap:rangeTitle=""
             ap:domainTitle="Tiempo"
             ap:lineLabels="left|bottom"
             ap:lineLabelRotationBottom="-45"/>

@@ -1,29 +1,6 @@
 <resources>
     <string name="app_name">BluetoothConnect</string>
     <string-array name="items_name">
-        <item>H2O</item>
-        <item>A00</item>
-        <item>co2</item>
-        <item>celltemp</item>
-        <item>cellpres</item>
-        <item>co2abs</item>
-        <item>ivolt</item>
-        <item>raw</item>
-        <item>A01</item>
-        <item>A02</item>
-        <item>A03</item>
-        <item>A04</item>
-        <item>A05</item>
-        <item>A06</item>
-        <item>A07</item>
-        <item>A08</item>
-        <item>A09</item>
-        <item>A10</item>
-        <item>A11</item>
-        <item>A12</item>
-        <item>A13</item>
-        <item>A14</item>
-        <item>A15</item>
         <item>DIS</item>
         <item>TAM</item>
         <item>HAM</item>
