@@ -166,7 +166,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 if (mConnectedThread != null)
                     mConnectedThread.interrupt();
                 Log.v("DataActivity", "Stop recording");
-               // plot.calculateMinMaxVals();
                 panZoom.setEnabled(true);
                 forceUpdateSlopeText();
                 showOptionMenu();
@@ -179,8 +178,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-               // Log.v("DataActivity", "tap"+position);
-                //plot.setTitle(parent.getItemAtPosition(position).toString());
+               // Log.v("DataActivity", "tap"+position)
                 String text = spinner.getSelectedItem().toString();
                 plot.clear();
                 addSerieToPlot(text);
@@ -207,15 +205,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         plot.setDomainStepValue(5);
         plot.setLinesPerRangeLabel(5);
         panZoom = PanZoom.attach(plot);
-       //panZoom = PanZoom.attach(plot, PanZoom.Pan.HORIZONTAL, PanZoom.Zoom.STRETCH_HORIZONTAL, PanZoom.ZoomLimit.MIN_TICKS);
         panZoom.setZoom(PanZoom.Zoom.STRETCH_HORIZONTAL);
         panZoom.setPan(PanZoom.Pan.HORIZONTAL);
         panZoom.setEnabled(false);
-        plot.getOuterLimits().set(0,1, 0, 1000);
+        plot.getOuterLimits().set(0,1, 0, 50000);
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#####.##"));
-        //plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).setFormat(new DecimalFormat("###"));
-        //plot.getRegistry().setEstimator(new ZoomEstimator());
-
+        plot.getRangeTitle().setVisible(false);
         //plot.setRangeBottomMin(-10);
         /*plot.setRangeTopMax(400);
         plot.setRangeTopMin(1);*/
@@ -223,7 +218,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         //plot.setDomainStep(StepMode.INCREMENT_BY_VAL, 20);
 
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("###.#"));
-      //  plot.setTitle(spinner.getSelectedItem().toString());
         plot.addListener(new PlotListener() {
             @Override
             public void onBeforeDraw(Plot source, Canvas canvas) {
@@ -232,7 +226,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
             @Override
             public void onAfterDraw(Plot source, Canvas canvas) {
-                //plot.calculateMinMaxVals();
                 int domainMin = (int)(Math.ceil(plot.getBounds().getMinX().doubleValue()));
                 int domainMax = (int)(Math.floor(plot.getBounds().getMaxX().doubleValue()));
                 if ((domainMin != minX) || (domainMax != maxX)){
@@ -276,87 +269,20 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     int endOfLineIndex = recDataString.indexOf("\n");
 
                     if (endOfLineIndex > 0) {
-                        //String dataInPrint = recDataString.substring(0, endOfLineIndex);
                         //Quitamos corchetes de inicio([) y final (]/r/n)
                         int initOfLineIndex =  recDataString.indexOf("[");
                         String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex - 2);
                         Log.v("DataInPrint_",dataInPrint);
-                        //String[] values = dataInPrint.split(",");
 
                         // if toggle button is checked, then add data parsed to series for showing in Plot
                         if (tgRecord.isChecked()) {
-
                             customParser(",", ":", dataInPrint);
-                            /*****************************/
-                            //Insert values into map
-                            /*for (int i = 0; i < values.length; i++) {
-                                String[] items = values[i].split(":");
-                                if (!items[0].contentEquals("LIC")) {
-                                    SimpleXYSeries serie = dataMapped.get(items[0]);
-                                    if (serie != null) {
-                                        if (!items[1].contains("NAN")){
-                                            try {
-                                                Number n = Double.parseDouble(items[1]);
-                                                if (n != null )
-                                                    serie.addLast(null, n);
-                                            }catch (NumberFormatException e){
-                                                serie.addLast(null, 0);
-                                            }catch (NullPointerException e){
-                                                serie.addLast(null, 0);
-                                            }
-                                        }else
-                                            serie.addLast(null, 0);
-                                    }
-                                } else {    //Parse "LIC" xml
-                                    String wellFormedXML = "<xml>" + items[1] + "</xml>";
-                                    ArrayList<String> xmlItems = parseXml(wellFormedXML);
-                                    if (xmlItems != null){
-                                        for (int j = 0; j < xmlItems.size(); j++){
-                                            String[] xmlItem = xmlItems.get(j).split(":");
-                                            SimpleXYSeries serie = dataMapped.get(xmlItem[0].toUpperCase());
-                                            if (serie != null) {
-                                                Number n = Double.parseDouble(xmlItem[1]);
-                                                if (n != null ){
-                                                    serie.addLast(null, n);
-                                                }else{
-                                                    serie.addLast(null, 0);
-                                                }
-                                                //parse LIC <co2>394.76</co2><tem>51.2</tem><pre>101383</pre><h2o>394.76</h2o><bat>12.4</bat>
-                                            }
-                                            //Show info in dialog if it is shown
-                                            if (xmlItem[0].toLowerCase().equals("bat")){
-                                                updateBattery(xmlItem[1]);
-                                                if ((dialogFragment != null) && (dialogFragment.shown)){
-                                                    dialogFragment.updateTV1("Bateria \n"+xmlItem[1]+"%");
-                                                }
-                                            }
-                                            if (xmlItem[0].toLowerCase().equals("tem")){
-                                                updateTemp(xmlItem[1]);
-                                                if ((dialogFragment != null) && (dialogFragment.shown)){
-                                                    dialogFragment.updateTV2("Temperatura \n"+xmlItem[1]+"º");
-                                                }
-                                            }
-                                            if (xmlItem[0].toLowerCase().equals("pre")){
-                                                if ((dialogFragment != null) && (dialogFragment.shown)){
-                                                    dialogFragment.updateTV3("Presion \n"+xmlItem[1]+"-");
-                                                }
-                                            }
-                                            if (xmlItem[0].toLowerCase().equals("flu")){
-                                                if ((dialogFragment != null) && (dialogFragment.shown)){
-                                                    dialogFragment.updateTV3("Flujo \n"+xmlItem[1]+"-");
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                plot.redraw();
-                                dataToFile.append(dataInPrint + "\n");
-                                Log.v("DataActivity", dataInPrint);
-                            }*/
                             /*Fixed bug: Update zoomable range to current max X (visible)*/
-                            Number n = maxX + 1;
-                            plot.getOuterLimits().set(0, n, 0, 1000);
+
                             plot.redraw();
+                            Number n = maxX + 1;
+                            //Number number = plot.getBounds().getMaxY();
+                            plot.getOuterLimits().set(0, n, 0, 50000);
                             dataToFile.append(dataInPrint + " - " + new SimpleDateFormat("HH:mm:ss").format(new Date())+ "\n");
                             updateInfoWidget();
                             Log.v("DataActivity", dataInPrint);
@@ -422,34 +348,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
        String address = intent.getStringExtra(MainActivity.EXTRA_DEVICE_ADDRESS);   //get current MAC
        StablishBluetoothConnection stablishBluetoothConnection = new StablishBluetoothConnection(address);
        stablishBluetoothConnection.start();
-       /*  Log.v("DataActivity", "Starting bluetooth");
-        if ((btSocket == null) || (!btSocket.isConnected())){
-            BluetoothDevice device = btAdapter.getRemoteDevice(address);
-            try {
-                btSocket = device.createRfcommSocketToServiceRecord(BTMODULEUUID);
-            }catch (IOException e){
-                Toast.makeText(getBaseContext(), "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
-                finish();
-            }
-            try {
-                btSocket.connect();
-            }catch (IOException e){
-                try {
-                    btSocket.close();
-                }catch (IOException e2){
-
-                }
-                Toast.makeText(getBaseContext(), "No se pudo establecer conexion", Toast.LENGTH_LONG).show();
-                finish();
-            }
-            if (btSocket.isConnected()){
-                mConnectedThread = new ConnectedThread(btSocket);
-                mConnectedThread.write("1");
-                mConnectedThread.start();
-            }
-            Log.v("DataActivity", "Finishing bluetooth");
-          //  loadingdialog.dismiss();
-        }*/
     }
 
     /*Stop bluetooth reader*/
@@ -564,11 +462,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
     private void forceUpdateSlopeText(){
         /*Update slope*/
-       // plot.calculateMinMaxVals();
         minX = (int)(Math.ceil(plot.getBounds().getMinX().doubleValue()));
         maxX = (int)(Math.floor(plot.getBounds().getMaxX().doubleValue()));
-        double slope = calculateSlope(spinner.getSelectedItem().toString(), minX, maxX);
-        plot.setTitle(String.format( "Pte: %.5f", slope ));
+        String item = spinner.getSelectedItem().toString();
+        double slope = calculateSlope(item, minX, maxX);
+        double correlation = calculatePearsonCorrelation(item, minX, maxX);
+        plot.setTitle(String.format( "Pte: %.5f \n Crl: %.5f", slope, correlation));
     }
 
     /**
@@ -746,9 +645,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
         tvBat.setText(String.format( "%.1f", n.doubleValue() ) + "%");
     }
-    public void showExtraInfo(View v){
+   /* public void showExtraInfo(View v){
         dialogFragment.show(getSupportFragmentManager(), "InfoFragment");
-    }
+    }*/
 
     /**
      * List containing file names
@@ -816,39 +715,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         }
     }
 
-   /* private void loadJson( JSONObject object){
-           // JSONObject object = new JSONObject(json); //Creamos un objeto JSON a partir de la cadena
-        Iterator<String> iter = object.keys();
-        while (iter.hasNext()) {
-            String key = iter.next();
-            try {
-                Object value = object.get(key);
-                if (value instanceof JSONObject){
-                    loadJson((JSONObject)value);
-                }else {
-                    SimpleXYSeries serie = dataMapped.get(key);
-                    Double item = (Double)object.getDouble(key);
-                    if (serie != null) {
-                        if (!item.isNaN()) {
-                            try {
-                                Number n = (Number)item;
-                                if (n != null)
-                                    serie.addLast(null, n);
-                            } catch (NumberFormatException e) {
-                                serie.addLast(null, 0);
-                            } catch (NullPointerException e) {
-                                serie.addLast(null, 0);
-                            }
-                        } else
-                            serie.addLast(null, 0);
-                    }
-                }
-            } catch (JSONException e) {
-                // Something went wrong!
-            }
-        }
-    }*/
-
     @Override
     public void onConnected(@Nullable Bundle bundle) {
 
@@ -897,8 +763,13 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             // Create the file.
             //String date = new SimpleDateFormat("HH-mm-ss_dd-MM-yyyy").format(new Date());
             String fileName = startDate.replace(":","-");
+            /**/
+            String item = spinner.getSelectedItem().toString();
+            double slope = calculateSlope(item, minX, maxX);
+            double correlation = calculatePearsonCorrelation(item, minX, maxX);
+            String footer = String.format("\n\nRango %s : (%d -  %d) | Pendiente: %.5f | Coeficiente Correlacion: %.5f", item, minX,maxX, slope, correlation);
+            data = data + footer;
             file = new File(folder, "data_"+ fileName+".txt");
-            //TODO adjuntar temperatura y demas valores
         }
 
         @Override
