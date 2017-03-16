@@ -28,6 +28,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity{
     private ArrayAdapter<String> mNewDevicesArrayAdapter;
     private List<String> list;
     public static final String EXTRA_DEVICE_ADDRESS = "extra_device_address";
+    public static final String EXTRA_CAMPAING_NAME = "extra_campaing_name";
 
     private Toast globalToast;
     private ProgressBar  progressBar;
@@ -200,7 +202,12 @@ public class MainActivity extends AppCompatActivity{
                 String address = info.substring(info.length() - 17);
                 //Toast.makeText(getApplicationContext(),address,Toast.LENGTH_LONG).show();
                 // Make an intent to start next activity while taking an extra which is the MAC address.
+                EditText etName = (EditText)findViewById(R.id.campo_texto);
+                String campaingName = etName.getText().toString();
+                if (campaingName.length() <= 1)
+                    campaingName = "data";
                 Intent i = new Intent(MainActivity.this, DataActivity.class);
+                i.putExtra(EXTRA_CAMPAING_NAME, campaingName);
                 i.putExtra(EXTRA_DEVICE_ADDRESS, address);
                 startActivity(i);
             }

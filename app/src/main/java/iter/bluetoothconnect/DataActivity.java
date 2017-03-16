@@ -125,12 +125,14 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private LinearLayout llMenuSlope;
     private Button btSaveData;
 
+    private String campaingName;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);   //keep screen ON
-
+        campaingName = getIntent().getStringExtra(MainActivity.EXTRA_CAMPAING_NAME);
         btAdapter = BluetoothAdapter.getDefaultAdapter();
 
         minX = -1;
@@ -211,6 +213,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         plot.getOuterLimits().set(0,1, 0, 50000);
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#####.##"));
         plot.getRangeTitle().setVisible(false);
+        plot.setBorderStyle(Plot.BorderStyle.NONE, null, null);
+        plot.setPlotMargins(0, 0, 0, 0);
+        plot.setPlotPadding(0, 0, 0, 0);
         //plot.setRangeBottomMin(-10);
         /*plot.setRangeTopMax(400);
         plot.setRangeTopMin(1);*/
@@ -234,7 +239,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     if (!tgRecord.isChecked()){
                         double slope = calculateSlope(spinner.getSelectedItem().toString(), minX, maxX);
                         double correlation = calculatePearsonCorrelation(spinner.getSelectedItem().toString(), minX, maxX);
-                        plot.setTitle(String.format( "Pte: %.5f \n Crl: %.5f", slope, correlation));
+                        plot.setTitle(String.format( "Pte: %.5f \n R2: %.5f", slope, correlation*correlation));
                     }
                 }
             }
@@ -278,12 +283,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                         if (tgRecord.isChecked()) {
                             customParser(",", ":", dataInPrint);
                             /*Fixed bug: Update zoomable range to current max X (visible)*/
-
                             plot.redraw();
                             Number n = maxX + 1;
                             //Number number = plot.getBounds().getMaxY();
                             plot.getOuterLimits().set(0, n, 0, 50000);
-                            dataToFile.append(dataInPrint + " - " + new SimpleDateFormat("HH:mm:ss").format(new Date())+ "\n");
+                            dataToFile.append( new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint +"\n");
                             updateInfoWidget();
                             Log.v("DataActivity", dataInPrint);
                             /***/
@@ -299,7 +303,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             @Override
             public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            String fileName =     (String)msg.obj;
+            String fileName = (String)msg.obj;
             if (msg.what == 1)
                 Toast.makeText(getApplicationContext(),"Fichero subido con exito "+fileName, Toast.LENGTH_LONG).show();
             else{
@@ -334,6 +338,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 if (msg.what == 1){
                     if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
+                        mConnectedThread.write("1");
                         mConnectedThread.write("1");
                         mConnectedThread.start();
                     }
@@ -467,7 +472,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         String item = spinner.getSelectedItem().toString();
         double slope = calculateSlope(item, minX, maxX);
         double correlation = calculatePearsonCorrelation(item, minX, maxX);
-        plot.setTitle(String.format( "Pte: %.5f \n Crl: %.5f", slope, correlation));
+        plot.setTitle(String.format( "Pte: %.5f \n R2: %.5f", slope, correlation * correlation));
     }
 
     /**
@@ -639,11 +644,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
     /*Update fields*/
     private void updateTemp(Number n){
-        tvTemp.setText(String.format( "%.1f", n.doubleValue())+"º");
+        tvTemp.setText(String.format( "%.1f", n.doubleValue())+" ºC");
     }
     private void updateBattery(Number n){
 
-        tvBat.setText(String.format( "%.1f", n.doubleValue() ) + "%");
+        tvBat.setText(String.format( "%.1f", n.doubleValue() ) + " V");
     }
    /* public void showExtraInfo(View v){
         dialogFragment.show(getSupportFragmentManager(), "InfoFragment");
@@ -751,6 +756,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 }
             }
             data = _data;
+            data = campaingName + " - " + data;
             if (loc != null){
                 data = startDate + "\nLocation: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ") Error: "+ loc.getAccuracy()+" m\n" + data;
             }else
@@ -767,9 +773,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             String item = spinner.getSelectedItem().toString();
             double slope = calculateSlope(item, minX, maxX);
             double correlation = calculatePearsonCorrelation(item, minX, maxX);
-            String footer = String.format("\n\nRango %s : (%d -  %d) | Pendiente: %.5f | Coeficiente Correlacion: %.5f", item, minX,maxX, slope, correlation);
+            String footer = String.format("\nRango %s : (%d -  %d) | Pendiente: %.5f | Coeficiente Correlacion(R2): %.5f", item, minX, maxX, slope, correlation * correlation);
             data = data + footer;
-            file = new File(folder, "data_"+ fileName+".txt");
+            String filePrefix = campaingName.replaceAll("\\s+",""); //Remove white spaces
+            file = new File(folder, filePrefix + "_" + fileName+".txt");
         }
 
         @Override

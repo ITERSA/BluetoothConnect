@@ -44,7 +44,7 @@
             >
             <TextView
                 android:id="@+id/tvTemp"
-                android:text="-º"
+                android:text="-ºC"
                 android:padding="5dp"
                 android:background="@drawable/my_border"
                 android:layout_width="wrap_content"
@@ -54,7 +54,7 @@
                 />
             <TextView
                 android:id="@+id/tvBat"
-                android:text="-%"
+                android:text="-V"
                 android:padding="5dp"
                 android:background="@drawable/my_border"
                 android:layout_width="wrap_content"

@@ -50,7 +50,7 @@
         android:background="@android:color/holo_orange_light"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_above="@+id/btSendData"
+        android:layout_above="@+id/campo_texto"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
         android:layout_marginTop="13dp">
@@ -59,6 +59,29 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </LinearLayout>
+    <EditText
+        android:id="@+id/campo_texto"
+        android:layout_above="@+id/btMap"
+        android:hint="Nombre campaña"
+        android:layout_margin="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <ImageButton
+        android:id="@+id/btMap"
+        android:layout_margin="10dp"
+        android:src="@android:drawable/ic_menu_mapmode"
+        android:layout_above="@+id/btSendData"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <Spinner
+        android:id="@+id/spinner"
+        android:layout_margin="10dp"
+        android:layout_above="@id/btSendData"
+        android:layout_toRightOf="@+id/btMap"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/btMap"
+        ></Spinner>
     <Button
         android:id="@+id/btSendData"
         android:layout_margin="10dp"
