@@ -204,6 +204,7 @@ public class MainActivity extends AppCompatActivity{
                 Intent i = new Intent(MainActivity.this, DataActivity.class);
                 i.putExtra(EXTRA_CAMPAING_NAME, campaingName);
                 i.putExtra(EXTRA_DEVICE_ADDRESS, address);
+                i.putExtra(MainActivityMap.PARAMETER_KML_NAME, spinner.getSelectedItem().toString());
                 startActivity(i);
             }
         });

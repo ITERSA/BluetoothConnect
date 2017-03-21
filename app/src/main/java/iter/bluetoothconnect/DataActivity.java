@@ -50,11 +50,6 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -63,20 +58,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParserFactory;
 
 /**
  * This activity stablish a bluetooth connection with the selected device and show all data in graph
@@ -84,10 +73,12 @@ import javax.xml.parsers.SAXParserFactory;
 //http://cursoandroidstudio.blogspot.com.es/2015/10/conexion-bluetooth-android-con-arduino.html
 public class DataActivity extends AppCompatActivity  implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener{
 
+    private static final int K = 1; //TODO change to value
     public static final String FILE_LIST = "file_list";
     private Spinner spinner;
     private TextView tvTemp;
     private TextView tvBat;
+    private TextView tvPress;
     private ValuesFragment dialogFragment;
     private ProgressDialogFragment progressDialogFragment;
 
@@ -123,6 +114,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
     private LinearLayout llMenuSlope;
     private Button btSaveData;
+
 
     private String campaingName;
 
@@ -199,6 +191,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         plot = (XYPlot) findViewById(R.id.plot);
         tvTemp = (TextView) findViewById(R.id.tvTemp);
         tvBat = (TextView)findViewById(R.id.tvBat);
+        tvPress = (TextView)findViewById(R.id.tvPress);
         initSeries();
        // plot.setDomainBoundaries(0, POINTS_IN_PLOT, BoundaryMode.AUTO);
         plot.setRangeBoundaries(0,1, BoundaryMode.AUTO);
@@ -236,9 +229,13 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     minX = domainMin;
                     maxX = domainMax;
                     if (!tgRecord.isChecked()){
-                        double slope = calculateSlope(spinner.getSelectedItem().toString(), minX, maxX);
-                        double correlation = calculatePearsonCorrelation(spinner.getSelectedItem().toString(), minX, maxX);
-                        plot.setTitle(String.format( "Pte: %.5f \n R2: %.5f", slope, correlation*correlation));
+                        String currentItem = spinner.getSelectedItem().toString();
+                        double slope = calculateSlope(currentItem, minX, maxX);
+                        double correlation = calculatePearsonCorrelation(currentItem, minX, maxX);
+                        if (currentItem.contentEquals("co2"))
+                            plot.setTitle(String.format( "Pte(*K): %.5f \n R2: %.5f", slope, correlation*correlation));
+                        else
+                            plot.setTitle(String.format( "Pte: %.5f \n R2: %.5f", slope, correlation*correlation));
                     }
                 }
             }
@@ -275,22 +272,24 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     if (endOfLineIndex > 0) {
                         //Quitamos corchetes de inicio([) y final (]/r/n)
                         int initOfLineIndex =  recDataString.indexOf("[");
-                        String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex - 2);
-                        Log.v("DataInPrint_",dataInPrint);
+                        if (initOfLineIndex > -1){
+                            String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex - 2);
+                            Log.v("DataInPrint_",dataInPrint);
 
-                        // if toggle button is checked, then add data parsed to series for showing in Plot
-                        if (tgRecord.isChecked()) {
-                            customParser(",", ":", dataInPrint);
-                            /*Fixed bug: Update zoomable range to current max X (visible)*/
-                            plot.redraw();
-                            Number n = maxX + 1;
-                            //Number number = plot.getBounds().getMaxY();
-                            plot.getOuterLimits().set(0, n, 0, 50000);
-                            dataToFile.append( new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint +"\n");
-                            updateInfoWidget();
-                            Log.v("DataActivity", dataInPrint);
-                            /***/
-                            recDataString.setLength(0); //clear buffer
+                            // if toggle button is checked, then add data parsed to series for showing in Plot
+                            if (tgRecord.isChecked()) {
+                                customParser(",", ":", dataInPrint);
+                                /*Fixed bug: Update zoomable range to current max X (visible)*/
+                                plot.redraw();
+                                Number n = maxX + 1;
+                                //Number number = plot.getBounds().getMaxY();
+                                plot.getOuterLimits().set(0, n, 0, 50000);
+                                dataToFile.append( new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint +"\n");
+                                updateInfoWidget();
+                                Log.v("DataActivity", dataInPrint);
+                                /***/
+                                recDataString.setLength(0); //clear buffer
+                            }
                         }
                     }
                 }
@@ -337,7 +336,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 if (msg.what == 1){
                     if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
-                        mConnectedThread.write("+COMMAND:0");     //TODO turn on led  replace -> "+COMMAND:0"
+                        mConnectedThread.write("+COMMAND:0\n");     //TODO turn on led  replace -> "+COMMAND:0"
                        // mConnectedThread.write("0");
                         mConnectedThread.start();
                     }
@@ -357,7 +356,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     /*Stop bluetooth reader*/
     private void stopBluetoothReader(){
         if (mConnectedThread != null)
-            mConnectedThread.write("+COMMAND:1");    //TODO Turn off led  replace -> "+COMMAND:1"
+            mConnectedThread.write("+COMMAND:1\n");    //TODO Turn off led  replace -> "+COMMAND:1"
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
                 btSocket.close();   //Close bluetooth socket
@@ -371,7 +370,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     protected void onDestroy() {
         super.onDestroy();
         if (mConnectedThread != null) {
-            mConnectedThread.write("+COMMAND:1");  //TODO Turn off led  replace -> "+COMMAND:1"
+            mConnectedThread.write("+COMMAND:1\n");  //TODO Turn off led  replace -> "+COMMAND:1"
             mConnectedThread.interrupt();
         }
         stopBluetoothReader();
@@ -479,7 +478,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         String item = spinner.getSelectedItem().toString();
         double slope = calculateSlope(item, minX, maxX);
         double correlation = calculatePearsonCorrelation(item, minX, maxX);
-        plot.setTitle(String.format( "Pte: %.5f \n R2: %.5f", slope, correlation * correlation));
+        if (item.contentEquals("co2"))
+            plot.setTitle(String.format( "Pte(*K): %.5f \n R2: %.5f", slope, correlation * correlation));
+        else
+            plot.setTitle(String.format( "Pte: %.5f \n R2: %.5f", slope, correlation * correlation));
     }
 
     /**
@@ -503,6 +505,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 simpleRegression.addData(serie.getX(i).doubleValue(), serie.getY(i).doubleValue());
             }
             result = simpleRegression.getSlope();
+            if (serieName.contentEquals("co2"))
+                result = result * K;
 
             Log.v("Slope",""+domainMin + " , "+domainMax + "  Slope: "+ result);
         }
@@ -595,8 +599,17 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
   private void updateInfoWidget(){
 
+      updateTextView(tvTemp, getItemValue("celltemp"), "ºC");
+      updateTextView(tvBat, getItemValue("ivolt"), "V");
+      float pressValue =  getItemValue("cellpres").floatValue();
+      pressValue = pressValue /100f;
+      Number n = pressValue;
+      updateTextView(tvPress, n, "a");
+  }
+
+  private Number getItemValue(String item){
       Number n;
-      SimpleXYSeries serie = dataMapped.get("celltemp");
+      SimpleXYSeries serie = dataMapped.get(item);
       if (serie == null){
           n = 0;
       }else{
@@ -606,21 +619,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                   n = 0;
           }else
               n = 0;
-      updateTemp(n);
       }
-
-      serie = dataMapped.get("ivolt");
-      if (serie == null){
-          n = 0;
-      }else{
-          if ( serie.size() > 0){
-            n = serie.getY(serie.size() - 1);
-            if (n == null)
-                n = 0;
-          }else
-              n = 0;
-      }
-      updateBattery(n);
+      return n;
   }
 
     private void showSaveDialog(){
@@ -649,13 +649,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         }
     }
 
-    /*Update fields*/
-    private void updateTemp(Number n){
-        tvTemp.setText(String.format( "%.1f", n.doubleValue())+" ºC");
-    }
-    private void updateBattery(Number n){
-
-        tvBat.setText(String.format( "%.1f", n.doubleValue() ) + " V");
+    private void updateTextView(TextView tv, Number n,  String unit){
+        if (unit.contentEquals("a"))
+            tv.setText(String.format( "%.2f", n.doubleValue() ) + unit);
+        else
+            tv.setText(String.format( "%.1f", n.doubleValue() ) + unit);
     }
    /* public void showExtraInfo(View v){
         dialogFragment.show(getSupportFragmentManager(), "InfoFragment");
@@ -783,7 +781,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             String item = spinner.getSelectedItem().toString();
             double slope = calculateSlope(item, minX, maxX);
             double correlation = calculatePearsonCorrelation(item, minX, maxX);
-            String footer = String.format("\nRango %s : (%d -  %d) | Pendiente: %.5f | Coeficiente Correlacion(R2): %.5f", item, minX, maxX, slope, correlation * correlation);
+            String footer = "";
+            if (item.contentEquals("co2"))
+                footer = String.format("\nRango %s : (%d -  %d) | Pendiente(*K): %.5f | Coeficiente Correlacion(R2): %.5f", item, minX, maxX, slope, correlation * correlation);
+            else
+                footer = String.format("\nRango %s : (%d -  %d) | Pendiente: %.5f | Coeficiente Correlacion(R2): %.5f", item, minX, maxX, slope, correlation * correlation);
             data = data + footer;
             String filePrefix = campaingName.replaceAll("\\s+",""); //Remove white spaces
             file = new File(folder, filePrefix + "_" + fileName+".txt");
@@ -945,10 +947,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     if(bytesAvailable > 0){
                         byte[] buffer = new byte[bytesAvailable];
                         int bytes = mmInStream.read(buffer);
-                        String readMessage = new String(buffer, 0, bytes);
-                        if (!readMessage.isEmpty()){
-                            if (bluetoothIn != null)
-                                bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
+                        if (bytes != -1){
+                            String readMessage = new String(buffer, 0, bytes);
+                            if (!readMessage.isEmpty()){
+                                if (bluetoothIn != null)
+                                    bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
+                            }
                         }
                     }
                 }catch (IOException e){
@@ -960,7 +964,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             byte[] bytes = input.getBytes();
             try {
                 mmOutStream.write(bytes);
-            }catch (IOException e){}
+                Log.v("LED",input);
+            }catch (IOException e){
+                Log.e("LED", e.getMessage());
+            }
         }
 
         public void cancel(){
@@ -970,5 +977,13 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
             }
         }
+    }
+    public void showMap(View v){
+        String kml = getIntent().getStringExtra(MainActivityMap.PARAMETER_KML_NAME);
+        if (kml == null)
+            kml = "";
+        Intent i = new Intent(DataActivity.this, MainActivityMap.class);
+        i.putExtra(MainActivityMap.PARAMETER_KML_NAME, kml);
+        startActivity(i);
     }
 }
