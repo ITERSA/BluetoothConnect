@@ -74,7 +74,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
     <Spinner
-        android:id="@+id/spinner"
+        android:id="@+id/spinnerMap"
         android:layout_margin="10dp"
         android:layout_above="@id/btSendData"
         android:layout_toRightOf="@+id/btMap"

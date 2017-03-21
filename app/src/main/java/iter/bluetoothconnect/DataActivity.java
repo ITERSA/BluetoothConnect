@@ -42,7 +42,6 @@ import com.androidplot.xy.PanZoom;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
-import com.androidplot.xy.ZoomEstimator;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
@@ -338,8 +337,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 if (msg.what == 1){
                     if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
-                        mConnectedThread.write("1");
-                        mConnectedThread.write("1");
+                        mConnectedThread.write("+COMMAND:0");     //TODO turn on led  replace -> "+COMMAND:0"
+                       // mConnectedThread.write("0");
                         mConnectedThread.start();
                     }
                 }
@@ -358,7 +357,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     /*Stop bluetooth reader*/
     private void stopBluetoothReader(){
         if (mConnectedThread != null)
-            mConnectedThread.write("0");    //Turn off led
+            mConnectedThread.write("+COMMAND:1");    //TODO Turn off led  replace -> "+COMMAND:1"
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
                 btSocket.close();   //Close bluetooth socket
@@ -372,7 +371,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     protected void onDestroy() {
         super.onDestroy();
         if (mConnectedThread != null) {
-            mConnectedThread.write("0");
+            mConnectedThread.write("+COMMAND:1");  //TODO Turn off led  replace -> "+COMMAND:1"
             mConnectedThread.interrupt();
         }
         stopBluetoothReader();
@@ -421,18 +420,26 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         dataMapped.put(serieName, new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, serieName));
     }
 
+    /**
+     *Prevent show raw, co2abs, cellpress, celltemp
+     *
+     */
+
     private void updateSpinner(String name){
-        SpinnerAdapter spinnerAdapter = spinner.getAdapter();
-        int size = spinnerAdapter.getCount();
-        ArrayList<String> listSpinner = new ArrayList<>();
-        for (int i = 0; i < size; i++){
-            listSpinner.add(spinnerAdapter.getItem(i).toString());
-        }
-        listSpinner.add(name);
-        ArrayAdapter<String> spinnerAdapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
-        spinnerAdapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(spinnerAdapter2);
-        spinnerAdapter2.notifyDataSetChanged();
+        if (!name.contentEquals("co2abs") && !name.contentEquals("raw") && !name.contentEquals("cellpress") && !name.contentEquals("celltemp")){
+            SpinnerAdapter spinnerAdapter = spinner.getAdapter();
+            int size = spinnerAdapter.getCount();
+            ArrayList<String> listSpinner = new ArrayList<>();
+            for (int i = 0; i < size; i++){
+                //Prevent show raw, co2abs, cellpress, celltemp
+                listSpinner.add(spinnerAdapter.getItem(i).toString());
+            }
+            listSpinner.add(name);
+            ArrayAdapter<String> spinnerAdapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
+            spinnerAdapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinner.setAdapter(spinnerAdapter2);
+            spinnerAdapter2.notifyDataSetChanged();
+      }
     }
 
     /*Clear all series*/
@@ -701,20 +708,23 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
     //initial divider1 = ',' divider2 = ':'
     private void customParser(String divider1, String divider2, String data){
-
-        String[] dataList = data.split(divider1);
-        if (dataList != null){
-            for (String pair : dataList) {
-                String[] key_val = pair.split(divider2);
-                if (key_val[1].startsWith("[")){
-                    //if start with '[' , remove brackets and parse _ and |
-                    if (key_val[1].length() > 2){
-                        String valueList = key_val[1].substring(1, key_val[1].length() - 2);
-                        customParser("_", "\\|", valueList);
+        if (data.length() >  0){
+            String[] dataList = data.split(divider1);
+            if (dataList != null){
+                for (String pair : dataList) {
+                    String[] key_val = pair.split(divider2);
+                    if (key_val.length > 0){
+                        if (key_val[1].startsWith("[")){
+                            //if start with '[' , remove brackets and parse _ and |
+                            if (key_val[1].length() > 2){
+                                String valueList = key_val[1].substring(1, key_val[1].length() - 2);
+                                customParser("_", "\\|", valueList);
+                            }
+                        }else {
+                            //Insert key and value
+                            insertIntoMap(key_val[0], key_val[1]);
+                        }
                     }
-                }else {
-                    //Insert key and value
-                    insertIntoMap(key_val[0], key_val[1]);
                 }
             }
         }
@@ -756,11 +766,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 }
             }
             data = _data;
-            data = campaingName + " - " + data;
+            //data = campaingName + " - " + data;
             if (loc != null){
-                data = startDate + "\nLocation: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ") Error: "+ loc.getAccuracy()+" m\n" + data;
+                data = campaingName + " - " + startDate + "\nLocation: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ") Error: "+ loc.getAccuracy()+" m\n" + data;
             }else
-                data = startDate + "\n"+ data;
+                data = campaingName + " - " + startDate + "\n"+ data;
 
             String path = Environment.getExternalStorageDirectory() + File.separator  + "stationData";
             // Create the folder.

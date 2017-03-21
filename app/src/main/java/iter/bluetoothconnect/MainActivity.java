@@ -1,6 +1,5 @@
 package iter.bluetoothconnect;
 
-import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -9,34 +8,26 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.location.LocationManager;
-import android.os.Build;
 import android.provider.Settings;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
-import android.text.Html;
-import android.text.method.LinkMovementMethod;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -60,6 +51,8 @@ public class MainActivity extends AppCompatActivity{
     private static final int REQUEST_ENABLE_BT = 1000;
 
     private Button btUploadFiles;
+    private ImageButton btmap;
+    private Spinner spinner;
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -114,6 +107,8 @@ public class MainActivity extends AppCompatActivity{
             }
         });
         globalToast = Toast.makeText(getApplicationContext(), null, Toast.LENGTH_LONG);
+        spinner = (Spinner)findViewById(R.id.spinnerMap);
+
         btUploadFiles = (Button)findViewById(R.id.btSendData);
         btUploadFiles.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -230,6 +225,16 @@ public class MainActivity extends AppCompatActivity{
         // Register for broadcasts when discovery has finished
         filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         registerReceiver(mReceiver, filter);
+        updateSpinner();
+        btmap = (ImageButton)findViewById(R.id.btMap);
+        btmap.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(MainActivity.this, MainActivityMap.class);
+                i.putExtra(MainActivityMap.PARAMETER_KML_NAME, spinner.getSelectedItem().toString());
+                startActivity(i);
+            }
+        });
     }
 
     @Override
@@ -330,4 +335,39 @@ public class MainActivity extends AppCompatActivity{
         else
             btUploadFiles.setEnabled(false);
     }
+
+
+    private void updateSpinner(){
+
+        ArrayList<String> listSpinner = listRaw();
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(spinnerAdapter);
+        spinnerAdapter.notifyDataSetChanged();
+    }
+
+    private ArrayList<String> listRaw(){
+
+        ArrayList<String> listSpinner = new ArrayList<>();
+        Field[] fields=R.raw.class.getFields();
+        for(int count=0; count < fields.length; count++){
+            String file = fields[count].getName();
+            if (file.startsWith("map"))
+                listSpinner.add(file);
+            //Log.i("Raw Asset: ", fields[count].getName());
+        }
+        return listSpinner;
+    }
+
+   /* private ArrayList<String> listAssets(){
+
+        String[] listFiles = null;
+        try {
+            listFiles = getResources().getAssets().list("");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        ArrayList<String> listSpinner = new ArrayList<>(Arrays.asList(listFiles));
+        return listSpinner;
+    }*/
 }

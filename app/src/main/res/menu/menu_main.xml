@@ -1,0 +1,19 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivityMap">
+    <item
+        android:id="@+id/action_map"
+        android:icon="@drawable/ic_action_map"
+        android:orderInCategory="300"
+        android:title="Mapas"
+        android:enabled="false"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_setting"
+        android:icon="@drawable/ic_action_settings"
+        android:orderInCategory="300"
+        android:enabled="false"
+        android:title="Configuración"
+        app:showAsAction="ifRoom" />
+</menu>
