@@ -77,14 +77,18 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:padding="0dp"
         >
         <com.androidplot.xy.XYPlot
             style="@style/APDefacto.Light"
             android:id="@+id/plot"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:padding="0dp"
             ap:title=""
             ap:rangeTitle=""
+            ap:paddingStart="0dp"
+            ap:marginLeft="0dp"
             ap:domainTitle="Tiempo"
             ap:lineLabels="left|bottom"
             ap:lineLabelRotationBottom="-45"/>

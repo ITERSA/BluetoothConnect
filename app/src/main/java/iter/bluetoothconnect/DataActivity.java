@@ -1,5 +1,6 @@
 package iter.bluetoothconnect;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -7,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 
@@ -17,6 +19,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -44,6 +47,8 @@ import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
@@ -71,7 +76,7 @@ import java.util.UUID;
  * This activity stablish a bluetooth connection with the selected device and show all data in graph
  */
 //http://cursoandroidstudio.blogspot.com.es/2015/10/conexion-bluetooth-android-con-arduino.html
-public class DataActivity extends AppCompatActivity  implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener{
+public class DataActivity extends AppCompatActivity  implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener{
 
     private static final int K = 1; //TODO change to value
     public static final String FILE_LIST = "file_list";
@@ -115,6 +120,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private LinearLayout llMenuSlope;
     private Button btSaveData;
 
+    private LocationRequest mLocationRequest;
+    private Location mLocation;
 
     private String campaingName;
 
@@ -284,7 +291,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                                 Number n = maxX + 1;
                                 //Number number = plot.getBounds().getMaxY();
                                 plot.getOuterLimits().set(0, n, 0, 50000);
-                                dataToFile.append( new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint +"\n");
+                                String locationText = "";
+                                if (mLocation != null)
+                                    locationText = String.format("(Lat: %f - Long: %f - Alt:%.1f) Error: %.1f", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
+                                locationText = locationText.replace(",",".");
+                                dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint + " "+ locationText +"\n");
                                 updateInfoWidget();
                                 Log.v("DataActivity", dataInPrint);
                                 /***/
@@ -336,8 +347,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 if (msg.what == 1){
                     if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
+
                         mConnectedThread.write("+COMMAND:0\n");     //TODO turn on led  replace -> "+COMMAND:0"
-                       // mConnectedThread.write("0");
+                        mConnectedThread.write("+COMMAND:2\n");
+                        //mConnectedThread.write("0");
                         mConnectedThread.start();
                     }
                 }
@@ -357,11 +370,13 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private void stopBluetoothReader(){
         if (mConnectedThread != null)
             mConnectedThread.write("+COMMAND:1\n");    //TODO Turn off led  replace -> "+COMMAND:1"
+            mConnectedThread.write("+COMMAND:3\n");
+          //  mConnectedThread.write("1");    //TODO Turn off led  replace -> "+COMMAND:1"
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
                 btSocket.close();   //Close bluetooth socket
             }catch (IOException e){
-
+                Log.e("Socket", "ERROR: "+e.getMessage());
             }
         }
     }
@@ -371,6 +386,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         super.onDestroy();
         if (mConnectedThread != null) {
             mConnectedThread.write("+COMMAND:1\n");  //TODO Turn off led  replace -> "+COMMAND:1"
+            mConnectedThread.write("+COMMAND:3\n");
+            //mConnectedThread.write("1");  //TODO Turn off led  replace -> "+COMMAND:1"
             mConnectedThread.interrupt();
         }
         stopBluetoothReader();
@@ -423,7 +440,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
      *Prevent show raw, co2abs, cellpress, celltemp
      *
      */
-
     private void updateSpinner(String name){
         if (!name.contentEquals("co2abs") && !name.contentEquals("raw") && !name.contentEquals("cellpress") && !name.contentEquals("celltemp")){
             SpinnerAdapter spinnerAdapter = spinner.getAdapter();
@@ -700,7 +716,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             }
         } else
             serie.addLast(null, 0);
-
     }
 
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
@@ -730,7 +745,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-
+        startLocationUpdates();
     }
 
     @Override
@@ -741,6 +756,30 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        if (location != null){
+            mLocation = location;
+        }
+    }
+
+    private void startLocationUpdates(){
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mGoogleApiClient.isConnected())
+            startLocationUpdates();
     }
 
     /************************* THREADS *************************/
@@ -755,18 +794,20 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
         public WriteToFileThread(String _data){
 
-            Location loc = null;
+           /* Location loc = null;
             if ((mGoogleApiClient != null) && (mGoogleApiClient.isConnected())){
                 try {
                   loc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
                 }catch (SecurityException e){
                     Log.e("DataActivity","Error getting location");
                 }
-            }
+            }*/
             data = _data;
             //data = campaingName + " - " + data;
-            if (loc != null){
-                data = campaingName + " - " + startDate + "\nLocation: (" + loc.getLatitude() +  ", " + loc.getLongitude() + ") Error: "+ loc.getAccuracy()+" m\n" + data;
+            if (mLocation != null){
+                String locationText = String.format("(Lat: %f | Long: %f | Alt:%.1f) Error: %.1f m", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
+                locationText = locationText.replace(",",".");
+                data = campaingName + " - " + startDate + "\n" + locationText+"\n" + data;
             }else
                 data = campaingName + " - " + startDate + "\n"+ data;
 
@@ -897,11 +938,13 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     try {
                         btSocket.close();
                     }catch (IOException e2){
-
+                        Log.e("Connect", "Error " + e2.getMessage());
                     }
-                    Toast.makeText(getApplicationContext(), "No se pudo establecer conexion", Toast.LENGTH_LONG).show();
-                    //
-                    result = false;
+                    finally {
+                        //Toast.makeText(getApplicationContext(), "No se pudo establecer conexion", Toast.LENGTH_LONG).show();
+                        //
+                        result = false;
+                    }
                 }
                 //Log.v("DataActivity", "Finishing bluetooth");
                 }
@@ -964,9 +1007,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             byte[] bytes = input.getBytes();
             try {
                 mmOutStream.write(bytes);
+                mmOutStream.flush();
                 Log.v("LED",input);
             }catch (IOException e){
-                Log.e("LED", e.getMessage());
+                Log.e("LED", "Error: " + e.getMessage());
             }
         }
 
