@@ -307,7 +307,7 @@ public class MainActivity extends AppCompatActivity{
         if (globalToast != null) {
             globalToast.setText(text);
             globalToast.setDuration(Toast.LENGTH_LONG);
-            globalToast.show();
+            //globalToast.show();
         }
     }
 
@@ -339,7 +339,6 @@ public class MainActivity extends AppCompatActivity{
 
 
     private void updateSpinner(){
-
         ArrayList<String> listSpinner = listRaw();
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);

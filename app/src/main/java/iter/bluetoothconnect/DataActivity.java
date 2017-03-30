@@ -14,6 +14,7 @@ import android.graphics.Color;
 
 import android.graphics.Paint;
 import android.location.Location;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -90,6 +91,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private Handler bluetoothIn;
     private Handler writeToFileHandler;
     private Handler uploadFileToFTPHandler;
+
+    //private StablishBluetoothConnection stablishBluetoothConnection;
     private Handler stablishBluetoothConnectionHandler;
 
     private final int handlerState = 0;
@@ -347,15 +350,27 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 if (msg.what == 1){
                     if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
-
-                        mConnectedThread.write("+COMMAND:0\n");     //TODO turn on led  replace -> "+COMMAND:0"
-                        mConnectedThread.write("+COMMAND:2\n");
+                        //mConnectedThread.write("+COMMAND:2\n");
+                        writeSocket("+COMMAND:2\n");
                         //mConnectedThread.write("0");
                         mConnectedThread.start();
+                        Log.v("Connect", "OK!");
+                        //mConnectedThread.write("+COMMAND:0\n");     //TODO turn on led  replace -> "+COMMAND:0"
                     }
                 }
             }
         };
+    }
+
+    private void writeSocket(String command){
+        if ((btSocket != null) && btSocket.isConnected()){
+            try {
+                OutputStream tmpOut = btSocket.getOutputStream();
+                tmpOut.write(command.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /*Start bluetooth connection */
@@ -368,9 +383,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
     /*Stop bluetooth reader*/
     private void stopBluetoothReader(){
-        if (mConnectedThread != null)
-            mConnectedThread.write("+COMMAND:1\n");    //TODO Turn off led  replace -> "+COMMAND:1"
-            mConnectedThread.write("+COMMAND:3\n");
+       /* if (mConnectedThread != null)
+            //mConnectedThread.write("+COMMAND:1\n");    //TODO Turn off led  replace -> "+COMMAND:1"
+            mConnectedThread.write("+COMMAND:3\n");*/
+        writeSocket("+COMMAND:3\n");
           //  mConnectedThread.write("1");    //TODO Turn off led  replace -> "+COMMAND:1"
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
@@ -385,7 +401,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     protected void onDestroy() {
         super.onDestroy();
         if (mConnectedThread != null) {
-            mConnectedThread.write("+COMMAND:1\n");  //TODO Turn off led  replace -> "+COMMAND:1"
+          //  mConnectedThread.write("+COMMAND:1\n");  //TODO Turn off led  replace -> "+COMMAND:1"
             mConnectedThread.write("+COMMAND:3\n");
             //mConnectedThread.write("1");  //TODO Turn off led  replace -> "+COMMAND:1"
             mConnectedThread.interrupt();
@@ -397,12 +413,20 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     protected void onStart() {
         mGoogleApiClient.connect();
         super.onStart();
+      //  launchBluetoothReaderThread();
     }
 
     @Override
     protected void onStop() {
         mGoogleApiClient.disconnect();
         super.onStop();
+        //stopBluetoothReader();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
 
     /*Launch openWith activity*/
@@ -514,9 +538,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         if ((serie.size() > 1) && (domainMin < domainMax)){
             int size = domainMax;
             if (domainMax > serie.size())
-                size = serie.size();
+                size = serie.size() - 1;
             SimpleRegression simpleRegression = new SimpleRegression(true);
-            for (int i = domainMin; i < size; i++){
+            for (int i = domainMin; i <= size; i++){
                 //TODO revise range
                 simpleRegression.addData(serie.getX(i).doubleValue(), serie.getY(i).doubleValue());
             }
@@ -537,10 +561,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             int size = domainMax;
             int serieSize =  serie.size();
             if (domainMax > serieSize)
-                size = serieSize;
+                size = serieSize - 1;
             double[] x = new double[serieSize];
             double[] y = new double[serieSize];
-            for (int i = domainMin; i < size; i++){
+            for (int i = domainMin; i <= size; i++){
                 x[i] = serie.getX(i).doubleValue();
                 y[i] = serie.getY(i).doubleValue();
             }
@@ -567,53 +591,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         return result;
     }
 
-    /*private void removeSlope(){
-        if (slopeSerie != null)
-            plot.removeSeries(slopeSerie);
-    }
-
-    private void initSlopeSerie(){
-        ArrayList<Number> values = new ArrayList<Number>();
-        slopeSerie = new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "slope");
-    }*/
-    /**
-     * Parse a XML
-     * @return ArrayList of items (name:value)
-     */
-  /*  private ArrayList<String> parseXml(String s){
-       // Log.v("Parsed", s);
-        XMLReader xmlReader = null;
-        try {
-            xmlReader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
-        } catch (SAXException e) {
-            e.printStackTrace();
-            return null;
-        } catch (ParserConfigurationException e) {
-            e.printStackTrace();
-            return null;
-
-
-        }
-        // create a SAXXMLHandler
-        SaxXMLHandler saxHandler = new SaxXMLHandler();
-        // store handler in XMLReader
-        xmlReader.setContentHandler(saxHandler);
-        // the process starts
-        try {
-
-            xmlReader.parse(new InputSource(new StringReader(s)));
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        } catch (SAXException e) {
-            e.printStackTrace();
-            return null;
-        }
-        return saxHandler.items;
-    }*/
-
-  private void updateInfoWidget(){
+    private void updateInfoWidget(){
 
       updateTextView(tvTemp, getItemValue("celltemp"), "ºC");
       updateTextView(tvBat, getItemValue("ivolt"), "V");
@@ -721,21 +699,23 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
     //initial divider1 = ',' divider2 = ':'
     private void customParser(String divider1, String divider2, String data){
-        if (data.length() >  0){
+        if (data != null && data.length() >  0){
             String[] dataList = data.split(divider1);
             if (dataList != null){
                 for (String pair : dataList) {
                     String[] key_val = pair.split(divider2);
-                    if (key_val.length > 0){
-                        if (key_val[1].startsWith("[")){
-                            //if start with '[' , remove brackets and parse _ and |
-                            if (key_val[1].length() > 2){
-                                String valueList = key_val[1].substring(1, key_val[1].length() - 2);
-                                customParser("_", "\\|", valueList);
+                    if (key_val != null){
+                        if (key_val.length > 0){
+                            if (key_val[1].startsWith("[")){
+                                //if start with '[' , remove brackets and parse _ and |
+                                if (key_val[1].length() > 2){
+                                    String valueList = key_val[1].substring(1, key_val[1].length() - 2);
+                                    customParser("_", "\\|", valueList);
+                                }
+                            }else {
+                                //Insert key and value
+                                insertIntoMap(key_val[0], key_val[1]);
                             }
-                        }else {
-                            //Insert key and value
-                            insertIntoMap(key_val[0], key_val[1]);
                         }
                     }
                 }
@@ -807,6 +787,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             if (mLocation != null){
                 String locationText = String.format("(Lat: %f | Long: %f | Alt:%.1f) Error: %.1f m", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
                 locationText = locationText.replace(",",".");
+                data = data.replace("\\|", ":");
+                data = data.replace("_", ",");
                 data = campaingName + " - " + startDate + "\n" + locationText+"\n" + data;
             }else
                 data = campaingName + " - " + startDate + "\n"+ data;
@@ -912,16 +894,16 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
      */
     private class StablishBluetoothConnection extends Thread{
 
-        private String address;
+        private final String address;
         public StablishBluetoothConnection(String _address) {
             address = _address;
             progressDialogFragment.show(getSupportFragmentManager(), "progressDialog");
             if ((btSocket == null) || (!btSocket.isConnected())) {
                 BluetoothDevice device = btAdapter.getRemoteDevice(address);
                 try {
-                    btSocket = device.createRfcommSocketToServiceRecord(BTMODULEUUID);
+                    btSocket = device.createInsecureRfcommSocketToServiceRecord(BTMODULEUUID);
                 } catch (IOException e) {
-                    Toast.makeText(getApplicationContext(), "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
+                   // Toast.makeText(getApplicationContext(), "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
                     finish();
                 }
             }
@@ -954,7 +936,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             else
                 msg.what = 0;
             if (stablishBluetoothConnectionHandler != null)
-                stablishBluetoothConnectionHandler.sendMessage(msg);
+                stablishBluetoothConnectionHandler.sendMessageDelayed(msg,2000);
         }
     }
 
