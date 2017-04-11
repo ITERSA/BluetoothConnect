@@ -84,8 +84,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private Spinner spinner;
     private TextView tvTemp;
     private TextView tvBat;
-    private TextView tvPress;
-    private ValuesFragment dialogFragment;
+    private TextView tvPress, tvCurrentVal;
+    //private ValuesFragment dialogFragment;
     private ProgressDialogFragment progressDialogFragment;
 
     private Handler bluetoothIn;
@@ -139,7 +139,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         minX = -1;
         maxX = 1;
 
-        dialogFragment = new ValuesFragment();
+        //dialogFragment = new ValuesFragment();
         progressDialogFragment = new ProgressDialogFragment();
         tgRecord = (ToggleButton)findViewById(R.id.toggleRecording);
         /*Toggle button ON/OFF reading data*/
@@ -184,7 +184,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                // Log.v("DataActivity", "tap"+position)
                 String text = spinner.getSelectedItem().toString();
                 plot.clear();
-                addSerieToPlot(text);
+                Number lastValue = addSerieToPlot(text);
+                updateTextView(tvCurrentVal, lastValue, "");
                 plot.redraw();
 
                 /*Update slope*/
@@ -202,6 +203,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         tvTemp = (TextView) findViewById(R.id.tvTemp);
         tvBat = (TextView)findViewById(R.id.tvBat);
         tvPress = (TextView)findViewById(R.id.tvPress);
+        tvCurrentVal = (TextView)findViewById(R.id.tvCurrentVal);
         initSeries();
        // plot.setDomainBoundaries(0, POINTS_IN_PLOT, BoundaryMode.AUTO);
         plot.setRangeBoundaries(0,1, BoundaryMode.AUTO);
@@ -214,10 +216,12 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         panZoom.setEnabled(false);
         plot.getOuterLimits().set(0,1, 0, 50000);
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#####.##"));
-        plot.getRangeTitle().setVisible(false);
         plot.setBorderStyle(Plot.BorderStyle.NONE, null, null);
         plot.setPlotMargins(0, 0, 0, 0);
         plot.setPlotPadding(0, 0, 0, 0);
+        plot.getLayoutManager().remove(plot.getRangeTitle());
+
+
         //plot.setRangeBottomMin(-10);
         /*plot.setRangeTopMax(400);
         plot.setRangeTopMin(1);*/
@@ -291,6 +295,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                                 customParser(",", ":", dataInPrint);
                                 /*Fixed bug: Update zoomable range to current max X (visible)*/
                                 plot.redraw();
+                                //TODO update current value widget
                                 Number n = maxX + 1;
                                 //Number number = plot.getBounds().getMaxY();
                                 plot.getOuterLimits().set(0, n, 0, 50000);
@@ -498,8 +503,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
      * Add serie called serieName to plot
      * @param serieName Name of the serie
      */
-    private void addSerieToPlot(String serieName){
-
+    private Number addSerieToPlot(String serieName){
+        Number lastValue = 0;
         SimpleXYSeries serie = dataMapped.get(serieName);
         if (serie != null){
             //LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.RED, Color.RED, null, null);
@@ -508,7 +513,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             series1Format.getLinePaint().setStrokeJoin(Paint.Join.ROUND);
             series1Format.getLinePaint().setStrokeWidth(7);
             plot.addSeries(serie, series1Format);
+            lastValue = serie.getY(serie.size() - 1);
         }
+        return lastValue;
     }
 
     private void forceUpdateSlopeText(){
@@ -558,15 +565,20 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         double result = 0.0;
         SimpleXYSeries serie = dataMapped.get(serieName);
         if ((serie.size() > 1) && (domainMin < domainMax)) {
-            int size = domainMax;
+            int rangeTop = domainMax;
             int serieSize =  serie.size();
-            if (domainMax > serieSize)
-                size = serieSize - 1;
-            double[] x = new double[serieSize];
-            double[] y = new double[serieSize];
-            for (int i = domainMin; i <= size; i++){
-                x[i] = serie.getX(i).doubleValue();
-                y[i] = serie.getY(i).doubleValue();
+            if (rangeTop > serieSize)
+                rangeTop = serieSize - 1;
+
+            int sizeVector = rangeTop - domainMin + 1;
+            double[] x = new double[sizeVector];
+            double[] y = new double[sizeVector];
+
+            int cont = 0;
+            for (int i = domainMin; i <= rangeTop; i++){
+                x[cont] = serie.getX(i).doubleValue();
+                y[cont] = serie.getY(i).doubleValue();
+                cont++;
             }
             result = new PearsonsCorrelation().correlation(x, y);
         }
@@ -594,6 +606,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private void updateInfoWidget(){
 
       updateTextView(tvTemp, getItemValue("celltemp"), "ºC");
+      updateTextView(tvBat, getItemValue("ivolt"), "V");
+      String item = spinner.getSelectedItem().toString();
+      updateTextView(tvCurrentVal,getItemValue(spinner.getSelectedItem().toString()),"");
       updateTextView(tvBat, getItemValue("ivolt"), "V");
       float pressValue =  getItemValue("cellpres").floatValue();
       pressValue = pressValue /100f;
@@ -644,10 +659,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     }
 
     private void updateTextView(TextView tv, Number n,  String unit){
+        String value = "%.1f";
         if (unit.contentEquals("a"))
-            tv.setText(String.format( "%.2f", n.doubleValue() ) + unit);
-        else
-            tv.setText(String.format( "%.1f", n.doubleValue() ) + unit);
+            value = "%.2f";
+        tv.setText(String.format( value, n.doubleValue() ) + unit);
     }
    /* public void showExtraInfo(View v){
         dialogFragment.show(getSupportFragmentManager(), "InfoFragment");
