@@ -14,12 +14,14 @@ import android.graphics.Color;
 
 import android.graphics.Paint;
 import android.location.Location;
+import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -80,6 +82,7 @@ import java.util.UUID;
 public class DataActivity extends AppCompatActivity  implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener{
 
     private static final int K = 1; //TODO change to value
+    private static final int MY_PERMISSIONS_REQUEST_WRITE_STORAGE = 112;
     public static final String FILE_LIST = "file_list";
     private Spinner spinner;
     private TextView tvTemp;
@@ -289,6 +292,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                         //Quitamos corchetes de inicio([) y final (]/r/n)
                         int initOfLineIndex =  recDataString.indexOf("[");
                         if (initOfLineIndex > -1){
+                            //FIXME in some cases it brokes
                             String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex - 2);
                             Log.v("DataInPrint_",dataInPrint);
 
@@ -643,29 +647,58 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
       return n;
   }
 
+  private void showDialog(){
+      AlertDialog d = new AlertDialog.Builder(DataActivity.this)
+              .setTitle(R.string.app_name)
+              .setIcon(android.R.drawable.ic_menu_save)
+              .setMessage("¿Desea Guardar y Enviar los datos al FTP?")
+              .setPositiveButton("Si", new DialogInterface.OnClickListener() {
+                  @Override
+                  public void onClick(DialogInterface dialog, int which) {
+                      if (dataToFile.length() > 0) {
+                          WriteToFileThread writeToFileThread = new WriteToFileThread(dataToFile.toString());
+                          writeToFileThread.start();
+                          dialog.dismiss();
+                      }
+                  }
+              })
+              .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                  @Override
+                  public void onClick(DialogInterface dialog, int which) {
+                      dialog.dismiss();
+                  }
+              }).create();
+      d.show();
+  }
+
     private void showSaveDialog(){
         if (isOptionsMenuShowed()){
-            AlertDialog d = new AlertDialog.Builder(DataActivity.this)
-                    .setTitle(R.string.app_name)
-                    .setIcon(android.R.drawable.ic_menu_save)
-                    .setMessage("¿Desea Guardar y Enviar los datos al FTP?")
-                    .setPositiveButton("Si", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            if (dataToFile.length() > 0){
-                                WriteToFileThread writeToFileThread = new WriteToFileThread(dataToFile.toString());
-                                writeToFileThread.start();
-                                dialog.dismiss();
-                            }
-                        }
-                    })
-                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    }).create();
-            d.show();
+
+            int permission = ContextCompat.checkSelfPermission(DataActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (permission == PackageManager.PERMISSION_GRANTED) {
+                showDialog();
+            }else{
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    ActivityCompat.requestPermissions(DataActivity.this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},
+                            MY_PERMISSIONS_REQUEST_WRITE_STORAGE);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_WRITE_STORAGE: {
+
+                if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    //Log.i(TAG, "Permission has been denied by user");
+                } else {
+                    //Log.i(TAG, "Permission has been granted by user");
+                    showDialog();
+                }
+            }
         }
     }
 
@@ -900,8 +933,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     }else
                         Log.e("ftp", "login error");
                 }catch (IOException e){
-                    e.getCause().printStackTrace();
-                    Log.e("ftp", "Upload fails!!");
+                    //e.getCause().printStackTrace();
+
+                    Log.e("ftp", e.getMessage());
                 }
             }else
                 Log.d("ftp","File not exists");

@@ -1,5 +1,6 @@
 package iter.bluetoothconnect;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -8,12 +9,18 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.os.Build;
 import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.SwitchCompat;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -39,7 +46,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity{
 
     private  BluetoothAdapter mBluetoothAdapter;
-
+    private static final int MY_PERMISSIONS_REQUEST_COARSE_LOCATION = 1;
     private ArrayAdapter<String> mNewDevicesArrayAdapter;
     private List<String> list;
     public static final String EXTRA_DEVICE_ADDRESS = "extra_device_address";
@@ -156,19 +163,22 @@ public class MainActivity extends AppCompatActivity{
                                             }
                                         })
                                         .show()
-                               cd          .findViewById(android.R.id.message))
+                                         .findViewById(android.R.id.message))
                                         .setMovementMethod(LinkMovementMethod.getInstance());       // Make the link clickable. Needs to be called after show(), in order to generate hyperlinks
                                 break;
                             case PackageManager.PERMISSION_GRANTED:
                                 break;
                         }
                     }*/
-                   /* int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
-                    ActivityCompat.requestPermissions(MainActivity.this,
-                            new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                            MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);*/
+                   /* if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                                MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
+                    }
                     mBluetoothAdapter.startDiscovery();
-                    progressBar.setVisibility(View.VISIBLE);
+                    progressBar.setVisibility(View.VISIBLE);*/
+                   askPermissions();
                 }else{
                    // Toast.makeText(getApplicationContext(),"Bluetooth desactivado",Toast.LENGTH_SHORT).show();
                     showGlobalToast("Bluetooth desactivado");
@@ -303,6 +313,22 @@ public class MainActivity extends AppCompatActivity{
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_COARSE_LOCATION: {
+
+                if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    //Log.i(TAG, "Permission has been denied by user");
+                } else {
+                    //Log.i(TAG, "Permission has been granted by user");
+                    mBluetoothAdapter.startDiscovery();
+                    progressBar.setVisibility(View.VISIBLE);
+                }
+            }
+        }
+    }
+
     private void showGlobalToast(String text){
         if (globalToast != null) {
             globalToast.setText(text);
@@ -357,6 +383,20 @@ public class MainActivity extends AppCompatActivity{
             //Log.i("Raw Asset: ", fields[count].getName());
         }
         return listSpinner;
+    }
+
+    private void askPermissions(){
+
+            int permission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION);
+            if (permission == PackageManager.PERMISSION_GRANTED) {
+                mBluetoothAdapter.startDiscovery();
+                progressBar.setVisibility(View.VISIBLE);
+            }else{
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},MY_PERMISSIONS_REQUEST_COARSE_LOCATION);
+                }
+            }
     }
 
    /* private ArrayList<String> listAssets(){
