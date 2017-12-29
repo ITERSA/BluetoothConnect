@@ -146,6 +146,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         tgRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                showCurrentValue(isChecked);
             if (isChecked){
                 Log.v("DataActivity", "Recording...");
                 hideOptionMenu();
@@ -173,6 +174,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 forceUpdateSlopeText();
                 showOptionMenu();
             }
+
             }
         });
 
@@ -356,7 +358,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
                         //mConnectedThread.write("+COMMAND:2\n");
-                        writeSocket("+COMMAND:2\n");
+                        writeSocket("+COMMAND:0\n");
                         //mConnectedThread.write("0");
                         mConnectedThread.start();
                         Log.v("Connect", "OK!");
@@ -391,7 +393,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
        /* if (mConnectedThread != null)
             //mConnectedThread.write("+COMMAND:1\n");    //TODO Turn off led  replace -> "+COMMAND:1"
             mConnectedThread.write("+COMMAND:3\n");*/
-        writeSocket("+COMMAND:3\n");
+        writeSocket("+COMMAND:1\n");
           //  mConnectedThread.write("1");    //TODO Turn off led  replace -> "+COMMAND:1"
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
@@ -407,7 +409,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         super.onDestroy();
         if (mConnectedThread != null) {
           //  mConnectedThread.write("+COMMAND:1\n");  //TODO Turn off led  replace -> "+COMMAND:1"
-            mConnectedThread.write("+COMMAND:3\n");
+            mConnectedThread.write("+COMMAND:1\n");
             //mConnectedThread.write("1");  //TODO Turn off led  replace -> "+COMMAND:1"
             mConnectedThread.interrupt();
         }
@@ -506,7 +508,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private Number addSerieToPlot(String serieName){
         Number lastValue = 0;
         SimpleXYSeries serie = dataMapped.get(serieName);
-        if (serie != null){
+        if ((serie != null) &&  (serie.size() > 0)){
             //LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.RED, Color.RED, null, null);
             //LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.rgb(200, 0, 0), null, null, null);
             LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.rgb(150, 0, 0), null, Color.argb(125, 100, 0, 0), null);
@@ -588,6 +590,15 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     /**
      *
      */
+    private void showCurrentValue(boolean checking){
+        if (checking){
+            tvCurrentVal.setVisibility(View.VISIBLE);
+        }else
+            tvCurrentVal.setVisibility(View.INVISIBLE);
+    }
+    /**
+     *
+     */
     private void showOptionMenu(){
         llMenuSlope.setVisibility(View.VISIBLE);
     }
@@ -606,7 +617,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private void updateInfoWidget(){
 
       updateTextView(tvTemp, getItemValue("celltemp"), "ºC");
-      updateTextView(tvBat, getItemValue("ivolt"), "V");
+      //updateTextView(tvBat, getItemValue("ivolt"), "V");
       String item = spinner.getSelectedItem().toString();
       updateTextView(tvCurrentVal,getItemValue(spinner.getSelectedItem().toString()),"");
       updateTextView(tvBat, getItemValue("ivolt"), "V");
@@ -721,15 +732,16 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                     String[] key_val = pair.split(divider2);
                     if (key_val != null){
                         if (key_val.length > 0){
-                            if (key_val[1].startsWith("[")){
+                            if ((key_val[1] != null) && (key_val[1].startsWith("["))){
                                 //if start with '[' , remove brackets and parse _ and |
                                 if (key_val[1].length() > 2){
-                                    String valueList = key_val[1].substring(1, key_val[1].length() - 2);
+                                    String valueList = key_val[1].substring(1, key_val[1].length() - 1);
                                     customParser("_", "\\|", valueList);
                                 }
                             }else {
                                 //Insert key and value
-                                insertIntoMap(key_val[0], key_val[1]);
+                                if ((key_val[0] != null) && key_val[1] != null)
+                                    insertIntoMap(key_val[0], key_val[1]);
                             }
                         }
                     }

@@ -41,16 +41,7 @@
             android:layout_centerInParent="true"
             android:padding="5dp"
             >
-            <TextView
-                android:id="@+id/tvCurrentVal"
-                android:text="-"
-                android:padding="5dp"
-                android:background="@drawable/my_border"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="14dp"
-                android:layout_marginRight="2dp"
-                />
+
             <TextView
                 android:id="@+id/tvPress"
                 android:text="-"
@@ -83,6 +74,9 @@
         </LinearLayout>
 
     </RelativeLayout>
+
+
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -104,9 +98,28 @@
             ap:paddingStart="0dp"
             ap:marginLeft="0dp"
             ap:renderMode="use_background_thread"
-            ap:domainTitle="Tiempo"
             ap:lineLabels="left|bottom"
-            ap:lineLabelRotationBottom="-45"/>
+            ap:lineLabelRotationBottom="-45">
+
+        </com.androidplot.xy.XYPlot>
+
+        <TextView
+            android:id="@+id/tvCurrentVal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="4dp"
+            android:layout_marginBottom="4dp"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:layout_alignBottom="@+id/plot"
+            android:alpha="0.8"
+            android:background="@drawable/my_border"
+            android:padding="5dp"
+            android:text="-"
+            android:textSize="14dp"
+            android:visibility="gone"
+            />
+
         <LinearLayout
             android:id="@+id/llMenuSlope"
             android:layout_width="wrap_content"

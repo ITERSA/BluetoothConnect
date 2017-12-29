@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">BluetoothConnect</string>
     <string-array name="items_name">
+        <item>co2</item>
         <item>DIS</item>
         <item>TAM</item>
         <item>HAM</item>
