@@ -1,0 +1,181 @@
+/*
+ * Copyright 2015 AndroidPlot.com
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+apply plugin: 'com.android.library'
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.vanniktech.android.junit.jacoco'
+apply plugin: 'com.github.kt3k.coveralls'
+
+class AttrMarkdown extends DefaultTask {
+
+    def inFile
+    def outFile
+
+    @TaskAction
+    def generate() {
+        def input = project.file(inFile)
+
+        def output = project.file(outFile)
+        if(output.exists()) {
+            output.delete()
+        }
+        output.parentFile.mkdirs()
+
+        input.text.findAll(/<!--\n?([\s\S]*?)\n?-->/) { match, g1 -> g1
+            if(!g1.startsWith("NODOC")) {
+                output.append(g1)
+                output.append "\n\n"
+            }
+        }
+    }
+}
+
+/**
+ * Generates xml attrs markdown docs.  To run:
+ * at the command line from the project root dir type:
+ * ./gradlew generateAttrsMarkdown
+ *
+ * The generated doc will appear in / replace androidplot/docs/attrs.md
+ */
+task generateAttrsMarkdown(type: AttrMarkdown) {
+    inFile = { "src/main/res/values/attrs.xml"}
+    outFile = { "../docs/attrs.md" }
+}
+
+android {
+    compileSdkVersion 26
+
+    defaultConfig {
+        versionCode 1
+        versionName "1.0"
+        minSdkVersion 16
+        targetSdkVersion 26
+        testApplicationId "com.androidplot.test"
+    }
+
+    /**
+     * TODO: enable and address lint issues.
+     */
+    lintOptions {
+        abortOnError false
+    }
+}
+
+group = 'com.androidplot'
+version = "1.0"
+
+def siteUrl = 'http://androidplot.com'
+def gitUrl = 'https://github.com/halfhp/androidplot.git'
+
+dependencies {
+
+    compile 'com.halfhp.fig:figlib:1.0.7'
+    compile 'com.android.support:support-annotations:27.0.2'
+    testCompile "org.mockito:mockito-core:1.10.19"
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile "org.robolectric:robolectric:3.1"
+
+    // temp fix for:
+    // https://github.com/robolectric/robolectric/issues/1932
+    testCompile 'org.khronos:opengl-api:gl1.1-android-2.1_r1'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    failOnError false
+    options {
+        links "http://docs.oracle.com/javase/7/docs/api/"
+        linksOffline "http://d.android.com/reference","${android.sdkDirectory}/docs/reference"
+    }
+    exclude '**/BuildConfig.java'
+    exclude '**/R.java'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.srcDirs
+}
+
+install {
+    repositories.mavenInstaller {
+        pom {
+            project {
+                packaging 'aar'
+                name 'Androidplot Core Library'
+                description = "Androidplot is a library for creating dynamic and static charts within your Android application."
+                url siteUrl
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'halfhp'
+                        name 'Nick Fellows'
+                        email 'halfhp@gmail.com'
+                    }
+                }
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+
+                }
+            }
+        }
+    }
+}
+
+bintray {
+
+    // these environment vars must be set when deploying to bintray.
+    // note: BINTRAY_PASSWORD is actually the api key, but naming it 'password'
+    // tells the CI environment to obfuscate the value in public logs.
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_PASSWORD')
+
+
+    configurations = ['archives']
+    pkg {
+        version {
+            name = "1.0"
+        }
+        repo = "androidplot"
+        name = "com.androidplot:androidplot-core"
+        issueTrackerUrl = "https://github.com/halfhp/androidplot/issues"
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        licenses = ["Apache-2.0"]
+    }
+}
+
+javadoc {
+    options.overview = "src/main/java/overview.html"
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
