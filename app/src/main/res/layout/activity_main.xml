@@ -60,15 +60,15 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </LinearLayout>
+
     <EditText
         android:id="@+id/campo_texto"
-        android:layout_above="@+id/btMap"
-        android:hint="Nombre campaña"
-        android:layout_margin="10dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_above="@+id/btMap"
+        android:layout_margin="10dp"
         android:focusableInTouchMode="true"
-        />
+        android:hint="Nombre de Usuario" />
     <ImageButton
         android:id="@+id/btMap"
         android:layout_margin="10dp"
