@@ -420,7 +420,10 @@ public class MainActivity extends AppCompatActivity{
         //https://medium.com/@ssaurel/how-to-retrieve-an-unique-id-to-identify-android-devices-6f99fd5369eb
         String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
 
-        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(Request.Method.GET, getString(R.string.HOST) + "?id=" + androidId,null, new Response.Listener<JSONArray>() {
+        String name = etFieldName.getText().toString();
+        if (name == "")
+            name = "-";
+        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(Request.Method.GET, getString(R.string.HOST) + "?id=" + androidId + "&name=" + name,null, new Response.Listener<JSONArray>() {
             @Override
             public void onResponse(JSONArray response) {
                 SharedPreferences.Editor prefEditor = sharedPref.edit();
