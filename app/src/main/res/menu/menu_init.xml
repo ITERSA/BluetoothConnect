@@ -1,0 +1,28 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity">
+
+    <item
+        android:id="@+id/myswitch"
+        android:orderInCategory="100"
+        android:icon="@android:drawable/stat_sys_data_bluetooth"
+        android:title="BT"
+        app:showAsAction="always"
+        android:actionLayout="@layout/switch_layout"
+        />
+    <item
+        android:id="@+id/action_upload"
+        android:icon="@android:drawable/ic_menu_upload"
+        android:orderInCategory="300"
+        android:enabled="false"
+        android:title="Upload"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_reload"
+        android:icon="@android:drawable/stat_notify_sync"
+        android:orderInCategory="400"
+        android:enabled="true"
+        android:title=""
+        app:showAsAction="ifRoom" />
+</menu>

@@ -10,8 +10,10 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.0.1'
-
-        // NOTE: Do not place your application dependencies here; they belong
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'        // NOTE: Do not place your application dependencies here; they belong
+        classpath 'com.vanniktech:gradle-android-junit-jacoco-plugin:0.11.0'
+        classpath "org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.2"
         // in the individual module build.gradle files
     }
 }

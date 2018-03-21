@@ -1,6 +1,8 @@
 package iter.bluetoothconnect;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -15,12 +17,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.location.Location;
 import android.os.Build;
-import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -40,6 +40,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+
 import com.androidplot.Plot;
 import com.androidplot.PlotListener;
 import com.androidplot.xy.BoundaryMode;
@@ -48,11 +49,11 @@ import com.androidplot.xy.PanZoom;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
@@ -79,16 +80,15 @@ import java.util.UUID;
  * This activity stablish a bluetooth connection with the selected device and show all data in graph
  */
 //http://cursoandroidstudio.blogspot.com.es/2015/10/conexion-bluetooth-android-con-arduino.html
-public class DataActivity extends AppCompatActivity  implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener{
+public class DataActivity extends AppCompatActivity  {
 
     private static final int K = 1; //TODO change to value
     private static final int MY_PERMISSIONS_REQUEST_WRITE_STORAGE = 112;
-    public static final String FILE_LIST = "file_list";
+    private static final int REQUEST_PERMISSIONS_FINE_LOCATION = 34;
     private Spinner spinner;
     private TextView tvTemp;
     private TextView tvBat;
     private TextView tvPress, tvCurrentVal;
-    //private ValuesFragment dialogFragment;
     private ProgressDialogFragment progressDialogFragment;
 
     private Handler bluetoothIn;
@@ -104,10 +104,10 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private StringBuilder recDataString = new StringBuilder();
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    public static final String FTP_IP = "ftp.iter.es";
-    public static final int FTP_PORT = 21;
-    public static final String FTP_USER = "jbarrancos";
-    public static final String FTP_PASS = "bebacafebe";
+    public static final String FTP_IP = "curronemesio.dyndns.org";
+    public static final int FTP_PORT = 12221;
+    public static final String FTP_USER = "fixgas";
+    public static final String FTP_PASS = "fixgas";
 
     private ToggleButton tgRecord;
     private StringBuilder dataToFile = new StringBuilder();
@@ -126,23 +126,43 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     private LinearLayout llMenuSlope;
     private Button btSaveData;
 
-    private LocationRequest mLocationRequest;
+    //private LocationRequest mLocationRequest;
+    private FusedLocationProviderClient mFusedLocationClient;
+
     private Location mLocation;
 
-    private String campaingName;
+    private String campaingName, userName;
+
+    private boolean isDone;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data);
+        getSupportActionBar().hide();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);   //keep screen ON
-        campaingName = getIntent().getStringExtra(MainActivity.EXTRA_CAMPAING_NAME);
+        isDone = false;
+        campaingName = getIntent().getStringExtra(getString(R.string.extra_campaing_name));
+        if (campaingName == null)
+            campaingName = "-";
+        userName = getIntent().getStringExtra(getString(R.string.extra_key_username));
+
+        double lat = getIntent().getDoubleExtra(getString(R.string.extra_lat),0.0);
+        double lng = getIntent().getDoubleExtra(getString(R.string.extra_long),0.0);
+
+        if ((lat != 0.0) && (lng != 0.0)){
+            mLocation = new Location("MapActivity");
+            mLocation.setLatitude(lat);
+            mLocation.setLongitude(lng);
+            mLocation.setAccuracy(getIntent().getFloatExtra(getString(R.string.extra_long),0));
+        }
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         btAdapter = BluetoothAdapter.getDefaultAdapter();
 
         minX = -1;
         maxX = 1;
 
-        //dialogFragment = new ValuesFragment();
         progressDialogFragment = new ProgressDialogFragment();
         tgRecord = (ToggleButton)findViewById(R.id.toggleRecording);
         /*Toggle button ON/OFF reading data*/
@@ -153,11 +173,11 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             if (isChecked){
                 Log.v("DataActivity", "Recording...");
                 hideOptionMenu();
-                plot.setTitle("");
+               // plot.setTitle("");
                 panZoom.setEnabled(false);
                 dataToFile.setLength(0);
                 clearAllSeries();   //Inicializa series
-                plot.setDomainBoundaries(0,1,BoundaryMode.AUTO);
+                plot.setDomainBoundaries(0,1, BoundaryMode.AUTO);
                 //change left drawable
                 int imgResource = android.R.drawable.ic_media_pause;
                 tgRecord.setCompoundDrawablesWithIntrinsicBounds(imgResource, 0, 0, 0);
@@ -215,7 +235,8 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         plot.setDomainBoundaries(0,1, BoundaryMode.AUTO);
         plot.setDomainStepValue(5);
         plot.setLinesPerRangeLabel(5);
-        panZoom = PanZoom.attach(plot);
+        panZoom = PanZoom.attach(plot, getApplicationContext());
+
         panZoom.setZoom(PanZoom.Zoom.STRETCH_HORIZONTAL);
         panZoom.setPan(PanZoom.Pan.HORIZONTAL);
         panZoom.setEnabled(false);
@@ -225,7 +246,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         plot.setPlotMargins(0, 0, 0, 0);
         plot.setPlotPadding(0, 0, 0, 0);
         plot.getLayoutManager().remove(plot.getRangeTitle());
-
 
         //plot.setRangeBottomMin(-10);
         /*plot.setRangeTopMax(400);
@@ -259,15 +279,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 }
             }
         });
-
-        /*Create a instance of Google Api Client*/
-        if (mGoogleApiClient == null){
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
-        }
 
         llMenuSlope = (LinearLayout)findViewById(R.id.llMenuSlope);
         btSaveData = (Button) findViewById(R.id.btOptions);
@@ -327,6 +338,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             public void handleMessage(Message msg) {
             super.handleMessage(msg);
             String fileName = (String)msg.obj;
+            isDone = true;
             if (msg.what == 1)
                 Toast.makeText(getApplicationContext(),"Fichero subido con exito "+fileName, Toast.LENGTH_LONG).show();
             else{
@@ -387,7 +399,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
     /*Start bluetooth connection */
    private void launchBluetoothReaderThread(){
        Intent intent = getIntent();
-       String address = intent.getStringExtra(MainActivity.EXTRA_DEVICE_ADDRESS);   //get current MAC
+       String address = intent.getStringExtra(getString(R.string.extra_device_address));   //get current MAC
        StablishBluetoothConnection stablishBluetoothConnection = new StablishBluetoothConnection(address);
        stablishBluetoothConnection.start();
     }
@@ -422,38 +434,57 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
     @Override
     protected void onStart() {
-        mGoogleApiClient.connect();
         super.onStart();
-      //  launchBluetoothReaderThread();
-    }
-
-    @Override
-    protected void onStop() {
-        mGoogleApiClient.disconnect();
-        super.onStop();
-        //stopBluetoothReader();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-    }
-
-    /*Launch openWith activity*/
-   /* private void openWith(String path){
-        if (path != null){
-            File f= new File(path);
-            if (f != null){
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.fromFile(f),"text/plain");
-                Intent chooser = Intent.createChooser(intent, "Abrir con...");
-                startActivity(chooser);
+        if (mLocation == null){
+            if (!checkPermissions()) {
+                startLocationPermissionRequest();
+            } else {
+                getLastLocation();
             }
         }
-    }*/
+    }
 
-    /*Initialize all series*/
+    @Override
+    public void finish() {
+
+        if (isDone){
+            String pointName =  getIntent().getStringExtra(getString(R.string.extra_point_name));
+            if (pointName == null)
+                pointName = "-";
+            Intent intent = new Intent();
+            intent.putExtra(getString(R.string.extra_point_name), pointName);
+            setResult(Activity.RESULT_OK, intent);
+
+        }else
+            setResult(Activity.RESULT_CANCELED);
+        super.finish();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_WRITE_STORAGE:
+                if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    //Log.i(TAG, "Permission has been denied by user");
+                } else {
+                    //Log.i(TAG, "Permission has been granted by user");
+                    showDialog();
+                }
+                break;
+            case REQUEST_PERMISSIONS_FINE_LOCATION:
+                if (grantResults.length <= 0) {
+                    // If user interaction was interrupted, the permission request is cancelled and you
+                    // receive empty arrays.
+                    Log.i("DataActivity", "User interaction was cancelled.");
+                } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission granted.
+                    getLastLocation();
+                }
+                break;
+        }
+    }
+
+     /*Initialize all series*/
     private void initSeries(){
         dataMapped = new HashMap<String, SimpleXYSeries>();
         String[] spinnerItems = getResources().getStringArray(R.array.items_name); //leemos valores de string
@@ -515,9 +546,17 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         if ((serie != null) &&  (serie.size() > 0)){
             //LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.RED, Color.RED, null, null);
             //LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.rgb(200, 0, 0), null, null, null);
-            LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.rgb(150, 0, 0), null, Color.argb(125, 100, 0, 0), null);
+            //LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.rgb(150, 0, 0), null, Color.argb(125, 100, 0, 0), null);
+
+            /*PointLabelFormatter  plf = new PointLabelFormatter();
+            plf.getTextPaint().setTextSize(18);
+            plf.getTextPaint().setColor(Color.BLACK);*/
+
+            LineAndPointFormatter series1Format = new LineAndPointFormatter(Color.rgb(220, 20, 60), Color.rgb(0, 0, 0), null, null);
             series1Format.getLinePaint().setStrokeJoin(Paint.Join.ROUND);
-            series1Format.getLinePaint().setStrokeWidth(7);
+            series1Format.getLinePaint().setStrokeWidth(4);
+            series1Format.getVertexPaint().setStrokeWidth(8);
+            //series1Format.setPointLabelFormatter(plf);
             plot.addSeries(serie, series1Format);
             lastValue = serie.getY(serie.size() - 1);
         }
@@ -687,20 +726,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_WRITE_STORAGE: {
 
-                if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                    //Log.i(TAG, "Permission has been denied by user");
-                } else {
-                    //Log.i(TAG, "Permission has been granted by user");
-                    showDialog();
-                }
-            }
-        }
-    }
 
     private void updateTextView(TextView tv, Number n,  String unit){
         String value = "%.1f";
@@ -717,15 +743,15 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
      * @param file String- File path
      */
     private void updateFileList(String file){
-        SharedPreferences sharedPref = getSharedPreferences("Configs",Context.MODE_PRIVATE);
-        Set<String> set = sharedPref.getStringSet(FILE_LIST, new HashSet<String>());
+        SharedPreferences sharedPref = getSharedPreferences(getString(R.string.key_configs),Context.MODE_PRIVATE);
+        Set<String> set = sharedPref.getStringSet(getString(R.string.key_filelist), new HashSet<String>());
         if (!set.contains(file)){
             set.add(file);
         }
         SharedPreferences.Editor editor = sharedPref.edit();
-        editor.remove(FILE_LIST);
+        editor.remove(getString(R.string.key_filelist));
         editor.commit();
-        editor.putStringSet(FILE_LIST, set);
+        editor.putStringSet(getString(R.string.key_filelist), set);
         editor.apply();
     }
 
@@ -783,44 +809,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
         }
     }
 
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        startLocationUpdates();
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        if (location != null){
-            mLocation = location;
-        }
-    }
-
-    private void startLocationUpdates(){
-        mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(1000);
-        mLocationRequest.setFastestInterval(1000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mGoogleApiClient.isConnected())
-            startLocationUpdates();
-    }
 
     /************************* THREADS *************************/
 
@@ -834,14 +822,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
 
         public WriteToFileThread(String _data){
 
-           /* Location loc = null;
-            if ((mGoogleApiClient != null) && (mGoogleApiClient.isConnected())){
-                try {
-                  loc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-                }catch (SecurityException e){
-                    Log.e("DataActivity","Error getting location");
-                }
-            }*/
             data = _data;
             //data = campaingName + " - " + data;
             if (mLocation != null){
@@ -849,9 +829,9 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                 locationText = locationText.replace(",",".");
                 data = data.replace("\\|", ":");
                 data = data.replace("_", ",");
-                data = campaingName + " - " + startDate + "\n" + locationText+"\n" + data;
+                data = campaingName + " - " + userName + " - " + startDate + "\n" + locationText+"\n" + data;
             }else
-                data = campaingName + " - " + startDate + "\n"+ data;
+                data = campaingName + " - " + userName + " - " + startDate + "\n"+ data;
 
             String path = Environment.getExternalStorageDirectory() + File.separator  + "stationData";
             // Create the folder.
@@ -923,7 +903,7 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                         BufferedInputStream buffIn=null;
                         buffIn=new BufferedInputStream(new FileInputStream(f));
                        // FileInputStream in = new FileInputStream(f);
-                        con.changeWorkingDirectory("/appflux");
+                        con.changeWorkingDirectory("/Portable");
                         result = con.storeFile(f.getName(),buffIn);
                         buffIn.close();
                         if (result)
@@ -934,7 +914,6 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
                         Log.e("ftp", "login error");
                 }catch (IOException e){
                     //e.getCause().printStackTrace();
-
                     Log.e("ftp", e.getMessage());
                 }
             }else
@@ -1065,12 +1044,37 @@ public class DataActivity extends AppCompatActivity  implements GoogleApiClient.
             }
         }
     }
-    public void showMap(View v){
-        String kml = getIntent().getStringExtra(MainActivityMap.PARAMETER_KML_NAME);
-        if (kml == null)
-            kml = "";
-        Intent i = new Intent(DataActivity.this, MainActivityMap.class);
-        i.putExtra(MainActivityMap.PARAMETER_KML_NAME, kml);
-        startActivity(i);
+
+    /*************  GPS methods -****************************/
+    /**
+     * Return the current state of the permissions needed.
+     */
+    private boolean checkPermissions() {
+        int permissionState = ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION);
+        return permissionState == PackageManager.PERMISSION_GRANTED;
     }
+
+    private void startLocationPermissionRequest() {
+        ActivityCompat.requestPermissions(DataActivity.this,
+                new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                REQUEST_PERMISSIONS_FINE_LOCATION);
+    }
+
+
+    @SuppressLint("MissingPermission")
+    private void getLastLocation() {
+        mFusedLocationClient.getLastLocation()
+                .addOnCompleteListener(this, new OnCompleteListener<Location>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Location> task) {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            mLocation = task.getResult();
+                          /*  Log.v("Location", "" + mLocation.getLatitude() + " " + mLocation.getLongitude());
+                            Toast.makeText(getApplicationContext(), "Location" + mLocation.getLatitude() + " " + mLocation.getLongitude() , Toast.LENGTH_LONG).show();*/
+                        }
+                    }
+                });
+    }
+
 }

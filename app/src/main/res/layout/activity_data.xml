@@ -130,12 +130,6 @@
             android:visibility="gone"
             android:alpha="0.8"
             >
-            <ImageButton
-                android:onClick="showMap"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_menu_mapmode"
-                />
             <Button
                 android:id="@+id/btOptions"
                 android:text="Guardar"

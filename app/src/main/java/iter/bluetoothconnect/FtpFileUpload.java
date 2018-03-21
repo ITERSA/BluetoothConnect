@@ -18,8 +18,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import static iter.bluetoothconnect.DataActivity.FILE_LIST;
-
 /**
  * Created by jfernandez on 17/11/2016.
  */
@@ -109,11 +107,12 @@ public class FtpFileUpload extends AsyncTask<Void,String,Set<String>> {
     @Override
     protected void onPostExecute(Set<String> set) {
         super.onPostExecute(set);
-        SharedPreferences sharedPref = context.getSharedPreferences("Configs",Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = context.getSharedPreferences(context.getString(R.string.key_configs),Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
-        editor.remove(FILE_LIST);
-        editor.commit();
-        editor.putStringSet(FILE_LIST, set);
+
+        editor.remove(context.getString(R.string.key_filelist));
+        editor.apply();
+        editor.putStringSet(context.getString(R.string.key_filelist), set);
         editor.apply();
         pd.dismiss();
         String text = "Envio de ficheros completados con exito";

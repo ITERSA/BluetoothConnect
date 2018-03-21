@@ -15,28 +15,28 @@
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_alignParentTop="true"
-        android:layout_alignParentRight="true"
+        android:layout_alignParentLeft="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         style="@android:style/Widget.ProgressBar.Small"
         android:layout_marginRight="5dp" />
 
-     <android.support.v7.widget.SwitchCompat
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/swichBluetooth"
+
+    <EditText
+        android:id="@+id/campo_texto"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_margin="8dp"
-        android:text="Bluetooth"
-         android:drawableLeft="@android:drawable/stat_sys_data_bluetooth"
+        android:hint="Nombre usuario"
+        android:layout_margin="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusableInTouchMode="true"
         />
 
     <Button
         android:text="Scan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/swichBluetooth"
+        android:layout_below="@+id/campo_texto"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
         android:drawableLeft="@android:drawable/ic_popup_sync"
@@ -51,46 +51,32 @@
         android:background="@android:color/holo_orange_light"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_above="@+id/campo_texto"
+        android:layout_above="@+id/spinnerMap"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
         android:layout_marginTop="13dp">
         <ListView
             android:id="@+id/leads_list"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:choiceMode="singleChoice" />
     </LinearLayout>
-    <EditText
-        android:id="@+id/campo_texto"
-        android:layout_above="@+id/btMap"
-        android:hint="Nombre campaña"
-        android:layout_margin="10dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:focusableInTouchMode="true"
-        />
-    <ImageButton
-        android:id="@+id/btMap"
-        android:layout_margin="10dp"
-        android:src="@android:drawable/ic_menu_mapmode"
-        android:layout_above="@+id/btSendData"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+
+
     <Spinner
         android:id="@+id/spinnerMap"
         android:layout_margin="10dp"
-        android:layout_above="@id/btSendData"
-        android:layout_toRightOf="@+id/btMap"
+        android:layout_above="@id/btMap"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/btMap"
         ></Spinner>
+
     <Button
-        android:id="@+id/btSendData"
+        android:id="@+id/btMap"
         android:layout_margin="10dp"
+        android:drawableLeft="@android:drawable/ic_menu_send"
         android:layout_alignParentBottom="true"
-        android:text="Enviar datos antiguos"
+        android:text="Start!"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        />
+        android:layout_height="wrap_content" />
 </RelativeLayout>
