@@ -27,5 +27,6 @@
     <string name="key_configs">Configs</string>
     <string name="key_maptype">key_maptype</string>
     <string name="key_filelist">key_filelist</string>
+    <string name="key_firsttime">key_firsttime</string>
     <!-- Strings related to Settings -->
 </resources>

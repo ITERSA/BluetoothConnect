@@ -23,6 +23,9 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.LinearInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -68,7 +71,6 @@ public class MainActivity extends AppCompatActivity{
     private EditText etFieldName;
     private Spinner spinner;
     private ListView listItems;
-    private JSONArray campaingsList;
     private SharedPreferences sharedPref;
     private String currentBTMac;
 
@@ -76,7 +78,6 @@ public class MainActivity extends AppCompatActivity{
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             // When discovery finds a device
-
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 // Get the BluetoothDevice object from the Intent
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
@@ -92,10 +93,10 @@ public class MainActivity extends AppCompatActivity{
             }else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)){
                 //progressbar
                 int count = list.size();
-                String notif = "No se han detectado dispositivos";
-                if (count > 0)
-                    notif = ""+count +" dispositivos encontrados";
-                showGlobalToast(notif);
+                if (count == 0) {
+                    String notif = "No se han detectado dispositivos";
+                    showGlobalToast(notif);
+                }
                 progressBar.setVisibility(View.GONE);
             }
         }
@@ -125,44 +126,10 @@ public class MainActivity extends AppCompatActivity{
                     }
                     list.clear();
                     mNewDevicesArrayAdapter.notifyDataSetChanged();
-                   /* if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {  // Only ask for these permissions on runtime when running Android 6.0 or higher
-                        switch (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                            case PackageManager.PERMISSION_DENIED:
-                                ((TextView) new AlertDialog.Builder(MainActivity.this)
-                                        .setTitle("Runtime Permissions up ahead")
-                                        .setMessage(Html.fromHtml("<p>To find nearby bluetooth devices please click \"Allow\" on the runtime permissions popup.</p>" +
-                                                "<p>For more info see <a href=\"http://developer.android.com/about/versions/marshmallow/android-6.0-changes.html#behavior-hardware-id\">here</a>.</p>"))
-                                        .setNeutralButton("Okay", new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialog, int which) {
-                                                if (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                                                    ActivityCompat.requestPermissions(MainActivity.this,
-                                                            new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                                                            1);
-                                                }
-                                            }
-                                        })
-                                        .show()
-                                         .findViewById(android.R.id.message))
-                                        .setMovementMethod(LinkMovementMethod.getInstance());       // Make the link clickable. Needs to be called after show(), in order to generate hyperlinks
-                                break;
-                            case PackageManager.PERMISSION_GRANTED:
-                                break;
-                        }
-                    }*/
-                   /* if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
-                        ActivityCompat.requestPermissions(MainActivity.this,
-                                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                                MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
-                    }
-                    mBluetoothAdapter.startDiscovery();
-                    progressBar.setVisibility(View.VISIBLE);*/
                    askPermissions();
                 }else{
                     showGlobalToast("Bluetooth desactivado");
                 }
-
             }
         });
 
@@ -202,7 +169,14 @@ public class MainActivity extends AppCompatActivity{
         // Register for broadcasts when discovery has finished
         filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         registerReceiver(mReceiver, filter);
-        requestJson();  //Update spinner from internet
+        boolean firstTime = sharedPref.getBoolean(getString(R.string.key_firsttime),true);
+        if (firstTime){
+            requestJson();  //Update spinner from internet
+            SharedPreferences.Editor prefEditor = sharedPref.edit();
+            prefEditor.putBoolean(getString(R.string.key_firsttime),false);
+            prefEditor.apply();
+        }else
+            loadJsonFromSharedpreferences();
         Button btStart = (Button)findViewById(R.id.btMap);
         btStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -230,7 +204,8 @@ public class MainActivity extends AppCompatActivity{
                         startActivity(i);
                     }
                 }
-            }
+            }else
+                showGlobalToast("Selecciona un dispositivo bluetooth de la lista");
             }
         });
     }
@@ -253,7 +228,6 @@ public class MainActivity extends AppCompatActivity{
             mNewDevicesArrayAdapter.notifyDataSetChanged();
             progressBar.setVisibility(View.GONE);
         }
-       // checkIfUploadFiles();
         invalidateOptionsMenu();
     }
 
@@ -262,19 +236,9 @@ public class MainActivity extends AppCompatActivity{
         super.onStart();
         final LocationManager manager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
         if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-            //showGlobalToast("GPS OFF!");
             AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-
-            // Setting Dialog Title
             alertDialog.setTitle("Configuración GPS");
-
-            // Setting Dialog Message
             alertDialog.setMessage("GPS no está habilitado, ¿Deseas habilitarlo?");
-
-            // Setting Icon to Dialog
-            //alertDialog.setIcon(android.R.drawable.stat_sys_gps_on);
-
-            // On pressing Settings button
             alertDialog.setPositiveButton("Habilitar GPS", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog,int which) {
                     Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
@@ -282,7 +246,6 @@ public class MainActivity extends AppCompatActivity{
                     startActivity(intent);
                 }
             });
-
             // on pressing cancel button
             alertDialog.setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
@@ -374,11 +337,15 @@ public class MainActivity extends AppCompatActivity{
         }
     }
 
+    /**
+     * Show global toast
+     * @param text String text to show in Toast
+     */
     private void showGlobalToast(String text){
         if (globalToast != null) {
             globalToast.setText(text);
             globalToast.setDuration(Toast.LENGTH_LONG);
-            //globalToast.show();
+            globalToast.show();
         }
     }
 
@@ -398,6 +365,10 @@ public class MainActivity extends AppCompatActivity{
         return result;
     }
 
+    /**
+     * check if there are any files pending of uploading
+     * @param item
+     */
     private void checkIfUploadFiles(MenuItem item){
 
         Set<String> set = sharedPref.getStringSet(getString(R.string.key_filelist), new HashSet<String>());
@@ -409,7 +380,10 @@ public class MainActivity extends AppCompatActivity{
             item.setEnabled(false);
     }
 
-
+    /**
+     * Update spinner with a array of strings
+     * @param listSpinner Array of string
+     */
     private void updateSpinner(ArrayList<String> listSpinner ){
         if (listSpinner == null){
             listSpinner = new ArrayList<>();
@@ -437,6 +411,9 @@ public class MainActivity extends AppCompatActivity{
         }
     }
 
+    /**
+     * Request json with the curren campaing a data from the host
+     */
     private void requestJson(){
         RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
 
@@ -446,9 +423,8 @@ public class MainActivity extends AppCompatActivity{
         JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(Request.Method.GET, getString(R.string.HOST) + "?id=" + androidId,null, new Response.Listener<JSONArray>() {
             @Override
             public void onResponse(JSONArray response) {
-                campaingsList = response;
                 SharedPreferences.Editor prefEditor = sharedPref.edit();
-                prefEditor.putString(getString(R.string.campaing_list), campaingsList.toString());
+                prefEditor.putString(getString(R.string.campaing_list), response.toString());
                 prefEditor.apply();
                 ArrayList nameList = loadJson(response);
                 updateSpinner(nameList);
@@ -459,25 +435,16 @@ public class MainActivity extends AppCompatActivity{
                 String currentError ="Error";
                 if (error != null)
                     currentError = error.getMessage().toString();
-
-                String strJson = sharedPref.getString(getString(R.string.campaing_list),"");
-                if ((strJson != null) && (strJson != "")){
-                    try {
-                        JSONArray jsonArray = new JSONArray(strJson);
-                        ArrayList nameList = loadJson(jsonArray);
-                        updateSpinner(nameList);
-                    } catch (JSONException e) {
-
-                    }
-
-                }else
-                    updateSpinner(null);
+                loadJsonFromSharedpreferences();
                 Log.e("Response", currentError);
             }
         });
         requestQueue.add(jsonArrayRequest);
     }
 
+    /*
+    * Get the campaing names of a json
+    * */
     private ArrayList<String> loadJson(JSONArray jsonArray){
         ArrayList<String> nameList = new ArrayList<>();
         nameList.add("-");
@@ -487,10 +454,26 @@ public class MainActivity extends AppCompatActivity{
                 JSONObject object = (JSONObject) jsonArray.get(i);
                 nameList.add(object.getString("name"));
             }
-            //TODO
         } catch (JSONException e) {
             e.printStackTrace();
         }
         return nameList;
+    }
+
+    /**
+     * Load json into spinner from Shared Preferences
+     */
+    private void loadJsonFromSharedpreferences(){
+        String strJson = sharedPref.getString(getString(R.string.campaing_list),"");
+        if ((strJson != null) && (strJson != "")) {
+            try {
+                JSONArray jsonArray = new JSONArray(strJson);
+                ArrayList nameList = loadJson(jsonArray);
+                updateSpinner(nameList);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }else
+            updateSpinner(null);
     }
 }

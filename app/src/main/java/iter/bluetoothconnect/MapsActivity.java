@@ -89,8 +89,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
 
-
-    private JSONObject geoData;
     private ArrayList<Point> points;
 
     private SensorManager sm;
@@ -117,7 +115,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
 
         infoPanel = (CardView) findViewById(R.id.cardView);
         infoPanel.setOnClickListener(new View.OnClickListener() {
@@ -318,25 +315,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
                 updateListView();
                 //TODO update point status in server
-            }else {
-                //Do nothing
             }
         }
-    }
-
-     private void stopLocationUpdates() {
-        if (!mRequestingLocationUpdates) {
-            //  Log.d(TAG, "stopLocationUpdates: updates never requested, no-op.");
-            return;
-        }
-
-        mFusedLocationClient.removeLocationUpdates(mLocationCallback)
-                .addOnCompleteListener(this, new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        mRequestingLocationUpdates = false;
-                    }
-                });
     }
 
     @SuppressLint("MissingPermission")
@@ -357,6 +337,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    private void stopLocationUpdates() {
+        if (!mRequestingLocationUpdates) {
+            //  Log.d(TAG, "stopLocationUpdates: updates never requested, no-op.");
+            return;
+        }
+
+        mFusedLocationClient.removeLocationUpdates(mLocationCallback)
+                .addOnCompleteListener(this, new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        mRequestingLocationUpdates = false;
+                    }
+                });
+    }
 
     /**
      * Update marker myPos in map when a new location is available
@@ -590,5 +584,22 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         listViewPoints.setAdapter(ap);
         ap.notifyDataSetChanged();
     }
+
+    /*private void saveCampaingStatus(){
+        String strJson = sharedPref.getString(getString(R.string.campaing_list),"");
+        int currentCamp = getIntent().getIntExtra(getString(R.string.extra_key_position_item),0);
+        if ((strJson != null) && (strJson != "") && (currentCamp > 0)) {
+            try {
+               JSONArray jsonArray = new JSONArray(strJson);
+               JSONObject object = (JSONObject) jsonArray.get(currentCamp - 1);
+               //TODO create and save new JSON with new status
+               SharedPreferences.Editor prefEditor = sharedPref.edit();
+                prefEditor.putString(getString(R.string.campaing_list), JSONARRAY.toString());
+                prefEditor.apply();*
+            }catch (JSONException e){
+                e.printStackTrace();
+            }
+        }
+    }*/
 }
 
