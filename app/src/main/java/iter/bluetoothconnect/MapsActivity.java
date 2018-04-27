@@ -26,6 +26,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Surface;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
@@ -189,6 +190,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             ){
                         return;
                     }else{
+                        mCurrentLocation = locationResult.getLastLocation();
                         updateMyPos(mCurrentLocation);
                         updateDistances();
                         updateListView();
@@ -265,10 +267,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onResume() {
         super.onResume();
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (sm != null){
             sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
             sm.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override

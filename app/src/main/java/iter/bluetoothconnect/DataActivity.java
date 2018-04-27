@@ -301,14 +301,28 @@ public class DataActivity extends AppCompatActivity  {
 
                     if (endOfLineIndex > 0) {
                         //Quitamos corchetes de inicio([) y final (]/r/n)
+                        String current_data = recDataString.toString().trim();
+                        Log.v("current_data","--------");
+                        Log.v("current_data", "initial: " + current_data);
+                        boolean wellFormed = true;
+                        if ((current_data.indexOf("[") == 0) && current_data.lastIndexOf("]") == current_data.length() - 1){
+                            //Log.v("current_data", "lsast index of ] "+current_data.lastIndexOf("]") + "- "+current_data.length());
+                            Log.v("current_data", "Well formed");
+                        }else{
+                           // Log.v("current_data", "lsast index of ] "+current_data.lastIndexOf("]") + "- "+current_data.length());
+                            Log.v("current_data", "NOT Well formed");
+                            wellFormed = false;
+                        }
+
                         int initOfLineIndex =  recDataString.indexOf("[");
-                        if (initOfLineIndex > -1){
+                        if ((initOfLineIndex > -1) && !wellFormed){
                             //FIXME in some cases it brokes
                             String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex - 2);
-                            Log.v("DataInPrint_",dataInPrint);
+                           //
 
                             // if toggle button is checked, then add data parsed to series for showing in Plot
                             if (tgRecord.isChecked()) {
+
                                 customParser(",", ":", dataInPrint);
                                 /*Fixed bug: Update zoomable range to current max X (visible)*/
                                 plot.redraw();
@@ -784,6 +798,7 @@ public class DataActivity extends AppCompatActivity  {
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
     //initial divider1 = ',' divider2 = ':'
     private void customParser(String divider1, String divider2, String data){
+        Log.v("current_data", data);
         if (data != null && data.length() >  0){
             String[] dataList = data.split(divider1);
             if (dataList != null){
