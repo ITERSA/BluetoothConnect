@@ -154,7 +154,7 @@ public class DataActivity extends AppCompatActivity  {
             mLocation = new Location("MapActivity");
             mLocation.setLatitude(lat);
             mLocation.setLongitude(lng);
-            mLocation.setAccuracy(getIntent().getFloatExtra(getString(R.string.extra_long),0));
+            mLocation.setAccuracy(getIntent().getFloatExtra(getString(R.string.extra_accuracy),0));
         }
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);

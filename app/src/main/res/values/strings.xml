@@ -11,7 +11,9 @@
     <string name="title_activity_settings">Settings</string>
 
     <!-- Strings related to Settings -->
-    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyBbi9eg5FFcuM3EYsJaCnIXAE9o6bndBt4</string>
+    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">
+AIzaSyDG24BDJKM5y3XDlVCwN4CYUBMtvCFdTnQ
+    </string>
     <string name="HOST">http://193.147.109.3:5000/data</string>
     <string name="campaing_list">campaing_list</string>
     <string name="extra_key_position_item">position_item</string>
