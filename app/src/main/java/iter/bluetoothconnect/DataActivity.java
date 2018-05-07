@@ -296,51 +296,45 @@ public class DataActivity extends AppCompatActivity  {
                 super.handleMessage(msg);
                 if (msg.what == handlerState){
                     String readMessage = (String)msg.obj;
+                    Log.v("current_data","---***-----");
+                    Log.v("current_data","chunk: " + readMessage);
                     recDataString.append(readMessage);
-                    int endOfLineIndex = recDataString.indexOf("\n");
+                    int endOfLineIndex = recDataString.lastIndexOf("\n");
 
+                    Log.v("current_data","raw data: " + recDataString);
                     if (endOfLineIndex > 0) {
+                        String current_data = recDataString.toString();
+
+                        evaluateChunk(current_data);
                         //Quitamos corchetes de inicio([) y final (]/r/n)
-                        String current_data = recDataString.toString().trim();
-                        Log.v("current_data","--------");
-                        Log.v("current_data", "initial: " + current_data);
-                        boolean wellFormed = true;
-                        if ((current_data.indexOf("[") == 0) && current_data.lastIndexOf("]") == current_data.length() - 1){
-                            //Log.v("current_data", "lsast index of ] "+current_data.lastIndexOf("]") + "- "+current_data.length());
-                            Log.v("current_data", "Well formed");
-                        }else{
-                           // Log.v("current_data", "lsast index of ] "+current_data.lastIndexOf("]") + "- "+current_data.length());
-                            Log.v("current_data", "NOT Well formed");
-                            wellFormed = false;
-                        }
-
-                        int initOfLineIndex =  recDataString.indexOf("[");
-                        if ((initOfLineIndex > -1) && !wellFormed){
-                            //FIXME in some cases it brokes
-                            String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex - 2);
-                           //
-
-                            // if toggle button is checked, then add data parsed to series for showing in Plot
-                            if (tgRecord.isChecked()) {
-
-                                customParser(",", ":", dataInPrint);
-                                /*Fixed bug: Update zoomable range to current max X (visible)*/
-                                plot.redraw();
-                                //TODO update current value widget
-                                Number n = maxX + 1;
-                                //Number number = plot.getBounds().getMaxY();
-                                plot.getOuterLimits().set(0, n, 0, 50000);
-                                String locationText = "";
-                                if (mLocation != null)
-                                    locationText = String.format("(Lat: %f - Long: %f - Alt:%.1f) Error: %.1f", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
-                                locationText = locationText.replace(",",".");
-                                dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint + " "+ locationText +"\n");
-                                updateInfoWidget();
-                                Log.v("DataActivity", dataInPrint);
-                                /***/
-                                recDataString.setLength(0); //clear buffer
-                            }
-                        }
+//                        int initOfLineIndex =  recDataString.indexOf("[");
+//                        if (initOfLineIndex > -1) {
+//                            //FIXME in some cases it brokes
+//                            String dataInPrint = recDataString.substring(initOfLineIndex + 1, endOfLineIndex - 2);
+//                           //
+//
+//                            // if toggle button is checked, then add data parsed to series for showing in Plot
+//                            if (tgRecord.isChecked()) {
+//
+//                                customParser(",", ":", dataInPrint);
+//                                /*Fixed bug: Update zoomable range to current max X (visible)*/
+//                                plot.redraw();
+//                                //TODO update current value widget
+//                                Number n = maxX + 1;
+//                                //Number number = plot.getBounds().getMaxY();
+//                                plot.getOuterLimits().set(0, n, 0, 50000);
+//                                String locationText = "";
+//                                if (mLocation != null)
+//                                    locationText = String.format("(Lat: %f - Long: %f - Alt:%.1f) Error: %.1f", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
+//                                locationText = locationText.replace(",",".");
+//                                dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint + " "+ locationText +"\n");
+//                                updateInfoWidget();
+//                                Log.v("DataActivity", dataInPrint);
+//                                /***/
+//
+//                                recDataString.setLength(0); //clear buffer
+//                            }
+//                        }
                     }
                 }
             }
@@ -824,6 +818,57 @@ public class DataActivity extends AppCompatActivity  {
         }
     }
 
+    private void evaluateChunk(String current_data){
+
+        String[] chunk = current_data.split("\n");
+        int cursor = 0;
+        //Quitamos corchetes de inicio([) y final (]/r/n)
+
+        for (int i = 0 ; i < chunk.length; i++){
+            Log.v("current_data", "initial: " + chunk[i]);
+            int initOfLineIndex =  chunk[i].indexOf("[");
+            int endOfLineIndex = chunk[i].lastIndexOf("\r");
+            if ((initOfLineIndex == 0) && (endOfLineIndex == chunk[i].length() - 1)){
+                Log.v("current_data", "Well formed");
+
+                String dataInPrint = chunk[i].substring(initOfLineIndex + 1, endOfLineIndex - 1);
+                // if toggle button is checked, then add data parsed to series for showing in Plot
+                if (tgRecord.isChecked()) {
+
+                    customParser(",", ":", dataInPrint);
+                                /*Fixed bug: Update zoomable range to current max X (visible)*/
+                    plot.redraw();
+                    //TODO update current value widget
+                    Number n = maxX + 1;
+                    //Number number = plot.getBounds().getMaxY();
+                    plot.getOuterLimits().set(0, n, 0, 50000);
+                    String locationText = "";
+                    if (mLocation != null)
+                        locationText = String.format("(Lat: %f - Long: %f - Alt:%.1f) Error: %.1f", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
+                    locationText = locationText.replace(",",".");
+                    dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint + " "+ locationText +"\n");
+                    updateInfoWidget();
+                    Log.v("DataActivity", dataInPrint);
+                    /***/
+
+
+                }
+            }else{
+                cursor = current_data.length() - chunk.length;
+                char x = current_data.charAt(cursor);
+            }
+        }
+        int endOfLineIndex = current_data.lastIndexOf("\n");
+        if (endOfLineIndex == (current_data.length() - 1)){ //if current data doesnt end with \n
+            recDataString.setLength(0); //clear buffer
+        }else{
+            StringBuilder sb = new StringBuilder();
+            String leftText = recDataString.substring(cursor, recDataString.length() -1);
+            sb.append(leftText);
+            recDataString = sb;
+        }
+    }
+
 
     /************************* THREADS *************************/
 
@@ -1064,6 +1109,7 @@ public class DataActivity extends AppCompatActivity  {
     /**
      * Return the current state of the permissions needed.
      */
+
     private boolean checkPermissions() {
         int permissionState = ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION);
