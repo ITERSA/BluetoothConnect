@@ -360,6 +360,7 @@ public class DataActivity extends AppCompatActivity  {
         writeToFileHandler = new Handler(){
             @Override
             public void handleMessage(Message msg) {
+                isDone = true;
             super.handleMessage(msg);
             final String currentPath = (String)msg.obj;
             if (msg.what == 1){
@@ -408,8 +409,10 @@ public class DataActivity extends AppCompatActivity  {
    private void launchBluetoothReaderThread(){
        Intent intent = getIntent();
        String address = intent.getStringExtra(getString(R.string.extra_device_address));   //get current MAC
-       StablishBluetoothConnection stablishBluetoothConnection = new StablishBluetoothConnection(address);
-       stablishBluetoothConnection.start();
+       if (address!= null && !address.isEmpty()){
+           StablishBluetoothConnection stablishBluetoothConnection = new StablishBluetoothConnection(address);
+           stablishBluetoothConnection.start();
+       }
     }
 
     /*Stop bluetooth reader*/
@@ -792,7 +795,7 @@ public class DataActivity extends AppCompatActivity  {
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
     //initial divider1 = ',' divider2 = ':'
     private void customParser(String divider1, String divider2, String data){
-        Log.v("current_data", data);
+       // Log.v("current_data", data);
         if (data != null && data.length() >  0){
             String[] dataList = data.split(divider1);
             if (dataList != null){
@@ -825,11 +828,11 @@ public class DataActivity extends AppCompatActivity  {
         //Quitamos corchetes de inicio([) y final (]/r/n)
 
         for (int i = 0 ; i < chunk.length; i++){
-            Log.v("current_data", "initial: " + chunk[i]);
+          //  Log.v("current_data", "initial: " + chunk[i]);
             int initOfLineIndex =  chunk[i].indexOf("[");
             int endOfLineIndex = chunk[i].lastIndexOf("\r");
             if ((initOfLineIndex == 0) && (endOfLineIndex == chunk[i].length() - 1)){
-                Log.v("current_data", "Well formed");
+               // Log.v("current_data", "Well formed");
 
                 String dataInPrint = chunk[i].substring(initOfLineIndex + 1, endOfLineIndex - 1);
                 // if toggle button is checked, then add data parsed to series for showing in Plot
@@ -848,7 +851,7 @@ public class DataActivity extends AppCompatActivity  {
                     locationText = locationText.replace(",",".");
                     dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint + " "+ locationText +"\n");
                     updateInfoWidget();
-                    Log.v("DataActivity", dataInPrint);
+                   // Log.v("DataActivity", dataInPrint);
                     /***/
 
 

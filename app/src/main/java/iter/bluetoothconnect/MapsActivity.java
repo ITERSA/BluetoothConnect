@@ -156,12 +156,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Intent i = new Intent(MapsActivity.this, DataActivity.class);
                 i.putExtra(getString(R.string.extra_campaing_name), getSupportActionBar().getTitle());
                 i.putExtra(getString(R.string.extra_key_username), getSupportActionBar().getSubtitle());
+                String currentBTMac = getIntent().getStringExtra(getString(R.string.extra_device_address));
+                if (currentBTMac == null)
+                    currentBTMac = "";
+                i.putExtra(getString(R.string.extra_device_address), currentBTMac);
                 if (mCurrentLocation != null) {
                     i.putExtra(getString(R.string.extra_lat), mCurrentLocation.getLatitude());
                     i.putExtra(getString(R.string.extra_long), mCurrentLocation.getLongitude());
                     i.putExtra(getString(R.string.extra_accuracy), mCurrentLocation.getAccuracy());
                 }
                 i.putExtra(getString(R.string.extra_point_name), panelName.getText());
+                i.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivityForResult(i, MAP_REQUEST);
             }
         });
