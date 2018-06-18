@@ -106,8 +106,8 @@ public class DataActivity extends AppCompatActivity  {
 
     public static final String FTP_IP = "curronemesio.dyndns.org";
     public static final int FTP_PORT = 12221;
-    public static final String FTP_USER = "fixgas";
-    public static final String FTP_PASS = "fixgas";
+    public static final String FTP_USER = "movgas";
+    public static final String FTP_PASS = "m0vg4s";
 
     private ToggleButton tgRecord;
     private StringBuilder dataToFile = new StringBuilder();
