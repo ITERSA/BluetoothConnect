@@ -50,6 +50,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -105,6 +106,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageButton actionButton;
 
     private MyPosition myPos;
+    private Circle circle;
 
     private SharedPreferences sharedPref;
 
@@ -173,7 +175,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         sharedPref = getSharedPreferences(getString(R.string.key_configs), Context.MODE_PRIVATE);
 
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         sm = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -185,28 +187,30 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 super.onLocationResult(locationResult);
-                if (mCurrentLocation == null){
-                    mCurrentLocation = locationResult.getLastLocation();
-                    updateMyPos(mCurrentLocation);
-                }else{
-                    if ((mCurrentLocation.getLatitude() == locationResult.getLastLocation().getLatitude()) &&
-                            (mCurrentLocation.getLongitude() == locationResult.getLastLocation().getLongitude()) &&
-                            (mCurrentLocation.getAltitude() == locationResult.getLastLocation().getAltitude())
-                            ){
-                        return;
-                    }else{
+                if (mMap != null){
+                    if (mCurrentLocation == null){
                         mCurrentLocation = locationResult.getLastLocation();
                         updateMyPos(mCurrentLocation);
-                        updateDistances();
-                        updateListView();
+                    }else{
+                        if ((mCurrentLocation.getLatitude() == locationResult.getLastLocation().getLatitude()) &&
+                                (mCurrentLocation.getLongitude() == locationResult.getLastLocation().getLongitude()) &&
+                                (mCurrentLocation.getAltitude() == locationResult.getLastLocation().getAltitude())
+                                ){
+                            return;
+                        }else{
+                            mCurrentLocation = locationResult.getLastLocation();
+                            updateMyPos(mCurrentLocation);
+                            updateDistances();
+                            updateListView();
+                        }
                     }
                 }
             }
         };
 
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(6000);
-        mLocationRequest.setFastestInterval(3000);
+        mLocationRequest.setInterval(3000);
+        mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
@@ -231,6 +235,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.getUiSettings().setZoomControlsEnabled(true);
         mMap.getUiSettings().setMapToolbarEnabled(false);
         mMap.getUiSettings().setRotateGesturesEnabled(false);
+        mMap.getUiSettings().setTiltGesturesEnabled(false);
         int mapType = sharedPref.getInt(getString(R.string.key_maptype), 3);
         mMap.setMapType(mapType);
 
@@ -250,9 +255,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     protected void onStop() {
-        super.onStop();
-        sm.unregisterListener(this);
+        if (sm != null)
+            sm.unregisterListener(this);
         stopLocationUpdates();
+        super.onStop();
     }
 
     @Override
@@ -320,11 +326,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         if(requestCode == MAP_REQUEST){
             if (resultCode == RESULT_OK){
                 String pointName = data.getStringExtra(getString(R.string.extra_point_name));
-                for (Point p : points){
-                    if (p.getName().contentEquals(pointName)){
-                        p.status = ""+System.currentTimeMillis();
-                        updatePanelInfo(p);
-                        break;
+                if (pointName != null){
+                    for (Point p : points){
+                        if (p.getName().contentEquals(pointName)){
+                            p.status = ""+System.currentTimeMillis();
+                            updatePanelInfo(p);
+                            break;
+                        }
                     }
                 }
                 updateListView();
@@ -356,14 +364,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             //  Log.d(TAG, "stopLocationUpdates: updates never requested, no-op.");
             return;
         }
-
-        mFusedLocationClient.removeLocationUpdates(mLocationCallback)
-                .addOnCompleteListener(this, new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        mRequestingLocationUpdates = false;
-                    }
-                });
+        if ((mFusedLocationClient) != null && (mLocationCallback != null))
+            mFusedLocationClient.removeLocationUpdates(mLocationCallback)
+                    .addOnCompleteListener(this, new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            mRequestingLocationUpdates = false;
+                        }
+                    });
     }
 
     /**
@@ -413,22 +421,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     int alt = Integer.parseInt(point.getString("alt"));
                     LatLng currentPoint = new LatLng(lat, lon);
                     Marker marker = mMap.addMarker(new MarkerOptions().position(currentPoint).title(title).flat(true).anchor(0.5f, 0.5f).icon(bd));
-                    /**/
-                    CircleOptions circleOptions = new CircleOptions();
-                    circleOptions.center(currentPoint);
-                    circleOptions.radius(5);
-                    circleOptions.fillColor(0x5500ff00);
-                    circleOptions.strokeColor(Color.YELLOW);
-                    circleOptions.strokeWidth(2.0f);
-                    Circle circle = mMap.addCircle(circleOptions);
-                    Point p = new Point(marker, circle, "", alt);
+                    Point p = new Point(marker, "", alt);
                     points.add(p);
                     builder.include(currentPoint);
                 }
                 //Log.v("map", ""+points.size());
                 AdapterPoint ap = new AdapterPoint(this, android.R.layout.two_line_list_item, points);
                 listViewPoints.setAdapter(ap);
-                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 5));
+                int width = getResources().getDisplayMetrics().widthPixels;
+                int height = getResources().getDisplayMetrics().heightPixels;
+                int padding = (int) (width * 0.05); // offset from edges of the map 5% of screen
+
+                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), width, height, padding));
+               // mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 5));
             } catch (JSONException e) {
 
             }
@@ -517,7 +522,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 for (Point point : points) {
                     double distance = SphericalUtil.computeDistanceBetween(myPos, point.getLatlng());
                     point.setDistance(distance);
-                    point.showCirle(false);
                     if (distance < minDistance) {
                         minDistance = distance;
                         p = point;
@@ -550,9 +554,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             infoPanel.setTag(point.getLatlng());
             panelDistance.setText(distanceText);
-            point.showCirle(true);
+            updateCircle(point.getLatlng());
             //check if pos is overlapping to point and this is not done, then button blinks
-            if (circlesAreOverlapping(point.distance, point.getCircleRadius(), myPos.getCircleRadius()) && (!point.isDone())){
+            if (circlesAreOverlapping(point.distance, Math.round(circle.getRadius()), myPos.getCircleRadius()) && (!point.isDone())){
                 //Star animation
                 actionButton.clearAnimation();
                 final Animation flashAnimation = new AlphaAnimation(1,0);
@@ -599,6 +603,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         ap.notifyDataSetChanged();
     }
 
+    private void updateCircle(LatLng currentPoint){
+        if (circle == null){
+            CircleOptions circleOptions = new CircleOptions();
+            circleOptions.center(currentPoint);
+            circleOptions.radius(5);
+            circleOptions.fillColor(0x5500ff00);
+            circleOptions.strokeColor(Color.YELLOW);
+            circleOptions.strokeWidth(2.0f);
+            circle = mMap.addCircle(circleOptions);
+        }else{
+            circle.setCenter(currentPoint);
+        }
+    }
     /*private void saveCampaingStatus(){
         String strJson = sharedPref.getString(getString(R.string.campaing_list),"");
         int currentCamp = getIntent().getIntExtra(getString(R.string.extra_key_position_item),0);

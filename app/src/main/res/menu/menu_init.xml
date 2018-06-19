@@ -7,7 +7,7 @@
         android:id="@+id/myswitch"
         android:orderInCategory="100"
         android:icon="@android:drawable/stat_sys_data_bluetooth"
-        android:title="BT"
+        android:title="Bluetooth"
         app:showAsAction="always"
         android:actionLayout="@layout/switch_layout"
         />
@@ -23,6 +23,6 @@
         android:icon="@android:drawable/stat_notify_sync"
         android:orderInCategory="400"
         android:enabled="true"
-        android:title=""
+        android:title="Reload"
         app:showAsAction="ifRoom" />
 </menu>

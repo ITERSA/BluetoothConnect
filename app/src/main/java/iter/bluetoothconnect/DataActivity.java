@@ -847,9 +847,9 @@ public class DataActivity extends AppCompatActivity  {
                     plot.getOuterLimits().set(0, n, 0, 50000);
                     String locationText = "";
                     if (mLocation != null)
-                        locationText = String.format("(Lat: %f - Long: %f - Alt:%.1f) Error: %.1f", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
+                        locationText = String.format(",Lat:%f,Long:%f,Alt:%.1f,Error:%.1f", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
                     locationText = locationText.replace(",",".");
-                    dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " - " + dataInPrint + " "+ locationText +"\n");
+                    dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " " + dataInPrint + " "+ locationText +"\n");
                     updateInfoWidget();
                    // Log.v("DataActivity", dataInPrint);
                     /***/
@@ -888,13 +888,13 @@ public class DataActivity extends AppCompatActivity  {
             data = _data;
             //data = campaingName + " - " + data;
             if (mLocation != null){
-                String locationText = String.format("(Lat: %f | Long: %f | Alt:%.1f) Error: %.1f m", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
+                String locationText = String.format("Lat:%f | Long:%f | Alt:%.1f | Error:%.1f m", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
                 locationText = locationText.replace(",",".");
-                data = data.replace("\\|", ":");
+                data = data.replace("|", ":");
                 data = data.replace("_", ",");
-                data = campaingName + " - " + userName + " - " + startDate + "\n" + locationText+"\n" + data;
+                data = campaingName + " | " + userName + " | " + startDate + "\n" + locationText+"\n" + data;
             }else
-                data = campaingName + " - " + userName + " - " + startDate + "\n"+ data;
+                data = campaingName + " | " + userName + " | " + startDate + "\n"+ data;
 
             String path = Environment.getExternalStorageDirectory() + File.separator  + "stationData";
             // Create the folder.
@@ -909,9 +909,9 @@ public class DataActivity extends AppCompatActivity  {
             double correlation = calculatePearsonCorrelation(item, minX, maxX);
             String footer = "";
             if (item.contentEquals("co2"))
-                footer = String.format("\nRango %s : (%d -  %d) | Pendiente(*K): %.5f | Coeficiente Correlacion(R2): %.5f", item, minX, maxX, slope, correlation * correlation);
+                footer = String.format("\nRango%s :(%d -  %d) | Pendiente(*K):%.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
             else
-                footer = String.format("\nRango %s : (%d -  %d) | Pendiente: %.5f | Coeficiente Correlacion(R2): %.5f", item, minX, maxX, slope, correlation * correlation);
+                footer = String.format("\nRango %s :(%d -  %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
             data = data + footer;
             String filePrefix = campaingName.replaceAll("\\s+",""); //Remove white spaces
             file = new File(folder, filePrefix + "_" + fileName+".txt");
