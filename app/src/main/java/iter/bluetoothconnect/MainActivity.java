@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity{
     private ListView listItems;
     private SharedPreferences sharedPref;
     private String currentBTMac;
+    private AlertDialog alert;
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -252,7 +253,9 @@ public class MainActivity extends AppCompatActivity{
                     dialog.dismiss();
                 }
             });
-            alertDialog.show();
+           alert = alertDialog.create();
+            if (!alert.isShowing())
+                alertDialog.show();
         }
     }
 

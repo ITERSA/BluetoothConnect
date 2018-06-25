@@ -20,7 +20,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -36,12 +35,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -50,7 +43,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.SettingsClient;
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -87,7 +79,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationCallback mLocationCallback;
     private Location mCurrentLocation;
     private Boolean mRequestingLocationUpdates;
-    private Bundle bundle;
 
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
 
@@ -142,10 +133,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         listViewPoints.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                int tag = (int) view.getTag();
                 drawerLayout.closeDrawer(Gravity.LEFT);
-                Point p = points.get(tag);
+                Point p = points.get(position);
                 goToPosition(p.getLatlng());
+                p.marker.showInfoWindow();
             }
         });
         panelName = (TextView) findViewById(R.id.tvNamePoint);
@@ -329,7 +320,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (pointName != null){
                     for (Point p : points){
                         if (p.getName().contentEquals(pointName)){
-                            //p.status = ""+System.currentTimeMillis();
                             p.setStatus( ""+System.currentTimeMillis());
                             updatePanelInfo(p);
                             break;
