@@ -134,7 +134,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setSubtitle(username);
-
+        mRequestingLocationUpdates = false;
         toggle = new ActionBarDrawerToggle(this,drawerLayout, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
@@ -329,7 +329,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (pointName != null){
                     for (Point p : points){
                         if (p.getName().contentEquals(pointName)){
-                            p.status = ""+System.currentTimeMillis();
+                            //p.status = ""+System.currentTimeMillis();
+                            p.setStatus( ""+System.currentTimeMillis());
                             updatePanelInfo(p);
                             break;
                         }
@@ -346,7 +347,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 
         //mLocationPermissionGranted = false;
-        mRequestingLocationUpdates = false      ;
+        mRequestingLocationUpdates = false;
         switch (requestCode) {
             case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
                 // If request is cancelled, the result arrays are empty.

@@ -15,6 +15,10 @@ public class Point {
         this.altitude = Math.round(altitude);
     }
 
+    public void setStatus(String current_status){
+        status = current_status;
+    }
+
     public boolean isDone(){
         return !status.contentEquals("");
     }

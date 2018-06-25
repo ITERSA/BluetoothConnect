@@ -189,7 +189,7 @@ public class MainActivity extends AppCompatActivity{
                     int campaingPosition = spinner.getSelectedItemPosition();
                     String userName = etFieldName.getText().toString();
                     if (userName == ""){
-                        userName = "default";
+                        userName = "-";
                     }
                     if (campaingPosition > 0){// MAP ACTIVITY
                         Intent i = new Intent(MainActivity.this, MapsActivity.class);

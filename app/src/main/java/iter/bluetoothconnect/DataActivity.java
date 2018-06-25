@@ -181,7 +181,7 @@ public class DataActivity extends AppCompatActivity  {
                 //change left drawable
                 int imgResource = android.R.drawable.ic_media_pause;
                 tgRecord.setCompoundDrawablesWithIntrinsicBounds(imgResource, 0, 0, 0);
-                startDate = new SimpleDateFormat("HH:mm:ss_dd-MM-yyyy").format(new Date());
+                startDate = new SimpleDateFormat("dd-MM-yyyy_HH:mm:ss").format(new Date());
 
                 launchBluetoothReaderThread();
                 //plot.clear();   //Limpia grafica
@@ -846,10 +846,22 @@ public class DataActivity extends AppCompatActivity  {
                     //Number number = plot.getBounds().getMaxY();
                     plot.getOuterLimits().set(0, n, 0, 50000);
                     String locationText = "";
-                    if (mLocation != null)
-                        locationText = String.format(",Lat:%f,Long:%f,Alt:%.1f,Error:%.1f", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
-                    locationText = locationText.replace(",",".");
-                    dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " " + dataInPrint + " "+ locationText +"\n");
+
+
+
+                    if (mLocation != null) {
+                        String latitude = "" + mLocation.getLatitude();
+                        latitude = latitude.replace(",", ".");
+                        String longitude = "" + mLocation.getLongitude();
+                        longitude = longitude.replace(",", ".");
+                        String altitude = (String) String.format("%.2f",  mLocation.getAltitude());
+                        altitude = altitude.replace(",", ".");
+                        String accuracy = (String) String.format("%.2f",  mLocation.getAccuracy());
+                        accuracy = accuracy.replace(",", ".");
+                        locationText = String.format("Lat:%s,Long:%s,Alt:%s,Error:%s", latitude, longitude,altitude, accuracy);
+                    }
+                   // locationText = locationText.replace(",",".");
+                    dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " " + dataInPrint + ","+ locationText +"\n");
                     updateInfoWidget();
                    // Log.v("DataActivity", dataInPrint);
                     /***/
@@ -887,14 +899,18 @@ public class DataActivity extends AppCompatActivity  {
 
             data = _data;
             //data = campaingName + " - " + data;
+            String pointName = getIntent().getStringExtra(getString(R.string.extra_point_name));
+            if (pointName == null)
+                pointName = "-";
             if (mLocation != null){
                 String locationText = String.format("Lat:%f | Long:%f | Alt:%.1f | Error:%.1f m", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
                 locationText = locationText.replace(",",".");
                 data = data.replace("|", ":");
-                data = data.replace("_", ",");
-                data = campaingName + " | " + userName + " | " + startDate + "\n" + locationText+"\n" + data;
+               // data = data.replace("_", ",");
+
+                data = campaingName + " | " + pointName + " | " + userName + " | " + startDate + "\n" + locationText+"\n" + data;
             }else
-                data = campaingName + " | " + userName + " | " + startDate + "\n"+ data;
+                data = campaingName + " | " +  pointName + " | " + userName + " | " + startDate + "\n"+ data;
 
             String path = Environment.getExternalStorageDirectory() + File.separator  + "stationData";
             // Create the folder.
@@ -909,11 +925,12 @@ public class DataActivity extends AppCompatActivity  {
             double correlation = calculatePearsonCorrelation(item, minX, maxX);
             String footer = "";
             if (item.contentEquals("co2"))
-                footer = String.format("\nRango%s :(%d -  %d) | Pendiente(*K):%.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
+                footer = String.format("\nRango_%s:(%d - %d) | Pendiente(*K):%.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
             else
-                footer = String.format("\nRango %s :(%d -  %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
+                footer = String.format("\nRango_%s:(%d - %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
             data = data + footer;
             String filePrefix = campaingName.replaceAll("\\s+",""); //Remove white spaces
+            filePrefix = filePrefix + "_" + pointName + "_" + userName;
             file = new File(folder, filePrefix + "_" + fileName+".txt");
         }
 

@@ -53,7 +53,7 @@ public class AdapterPoint extends ArrayAdapter<Point> {
         View view = convertView;
         final ViewHolder holder;
         try{
-            if (convertView == null){
+            if (view == null){
                 view = inflater.inflate(android.R.layout.two_line_list_item, null);
                 holder = new ViewHolder();
                 holder.display_name = (TextView) view.findViewById(android.R.id.text1);
@@ -81,7 +81,7 @@ public class AdapterPoint extends ArrayAdapter<Point> {
         }catch (Exception e){
 
         }
-        view.setTag(position);
+        //view.setTag(position);
         return view;
     }
 }
