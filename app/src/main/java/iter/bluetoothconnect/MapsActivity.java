@@ -2,6 +2,7 @@ package iter.bluetoothconnect;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -18,6 +19,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.view.Gravity;
@@ -104,6 +106,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle toggle;
     private ListView listViewPoints;
+   // private  AdapterPoint ap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,7 +123,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         String username = getIntent().getStringExtra(getString(R.string.extra_key_username));
-
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
@@ -241,7 +243,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 e.printStackTrace();
             }
         }
-        startLocationUpdate();
     }
 
     @Override
@@ -255,6 +256,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStart() {
         super.onStart();
+        if (sm != null){
+            sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
+            sm.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
+        }
+        startLocationUpdate();
     }
 
     private void startLocationUpdate(){
@@ -270,10 +276,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onResume() {
         super.onResume();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        if (sm != null){
-            sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
-            sm.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
-        }
+
     }
 
     @Override
@@ -321,6 +324,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     for (Point p : points){
                         if (p.getName().contentEquals(pointName)){
                             p.setStatus( ""+System.currentTimeMillis());
+                            if (p.isDone()){
+                                BitmapDescriptor  bd = BitmapDescriptorFactory.fromResource(R.drawable.done_notification_24px);
+                                p.marker.setIcon(bd);
+                            }
                             updatePanelInfo(p);
                             break;
                         }
@@ -330,6 +337,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 //TODO update point status in server
             }
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        AlertDialog d = new AlertDialog.Builder(this)
+                .setTitle(R.string.app_name)
+                .setIcon(R.mipmap.ic_launcher)
+                .setMessage(getString(R.string.quit_app))
+                .setNegativeButton(getString(R.string.No), null)
+                .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        MapsActivity.super.onBackPressed();
+                    }
+                }).create();
+        d.show();
     }
 
     @SuppressLint("MissingPermission")
@@ -360,7 +384,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     .addOnCompleteListener(this, new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            mRequestingLocationUpdates = false;
+                           // mRequestingLocationUpdates = false;
                         }
                     });
     }
@@ -375,7 +399,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng pos = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
         if (myPos == null){
             //Compose marker
-            Marker currentPos = mMap.addMarker(new MarkerOptions().anchor(0.5f, 0.5f).position(pos).title("Altitude: "+ Math.round(location.getAltitude())+ " m").icon(BitmapDescriptorFactory.fromResource(R.drawable.uparrow)));
+            Marker currentPos = mMap.addMarker(new MarkerOptions().anchor(0.5f, 0.5f).position(pos).title("Altitude: "+ Math.round(location.getAltitude())+ " m").icon(BitmapDescriptorFactory.fromResource(R.drawable.uparrow_24_blue)));
             //compose circle
             CircleOptions circleOptions = new CircleOptions();
             circleOptions.center(pos);
@@ -411,8 +435,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     double lon = Double.parseDouble(point.getString("lon"));
                     int alt = Integer.parseInt(point.getString("alt"));
                     LatLng currentPoint = new LatLng(lat, lon);
+
                     Marker marker = mMap.addMarker(new MarkerOptions().position(currentPoint).title(title).flat(true).anchor(0.5f, 0.5f).icon(bd));
+
                     Point p = new Point(marker, "", alt);
+                    //TODO check if marker is done
+                    /*
+                    if (marker.isDone()){
+                                marker.setIcon(markerIcon);
+                            }
+                     */
                     points.add(p);
                     builder.include(currentPoint);
                 }
@@ -529,9 +561,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      */
     private void updatePanelInfo(Point point){
         if (point != null){
-            int color = Color.GREEN;
+            int color = Color.RED;
             if (point.isDone()){
-                color = Color.RED;
+                color = Color.GREEN;
             }
             infoPanel.setCardBackgroundColor(color);
 
@@ -577,7 +609,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      * Go to current GPS location
      */
     private void goToPosition(LatLng latLng){
-        if ((mCurrentLocation != null) && (mMap != null)){
+        if ((latLng != null) && (mMap != null)){
             //LatLng latLng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,15.0f));
         }else{
@@ -591,7 +623,24 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void updateListView(){
         AdapterPoint ap = new AdapterPoint(this, android.R.layout.two_line_list_item, points);
         listViewPoints.setAdapter(ap);
+       // ap.notifyDataSetChanged();
+      /*  this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AdapterPoint ap = (AdapterPoint)listViewPoints.getAdapter();
+                ap.getPoints().clear();
+                ap.getPoints().addAll(points);
+
+                listViewPoints.invalidateViews();
+                listViewPoints.refreshDrawableState();
+            }
+        });*/
+        /*listViewPoints
+        ap.getPoints().clear();
+        ap.getPoints().addAll(points);
         ap.notifyDataSetChanged();
+        listViewPoints.invalidateViews();
+        listViewPoints.refreshDrawableState();*/
     }
 
     private void updateCircle(LatLng currentPoint){
@@ -623,5 +672,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }*/
+
 }
 

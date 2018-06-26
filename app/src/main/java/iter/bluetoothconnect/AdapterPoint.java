@@ -47,6 +47,10 @@ public class AdapterPoint extends ArrayAdapter<Point> {
         public TextView display_distance;
     }
 
+    public ArrayList<Point> getPoints() {
+        return points;
+    }
+
     @NonNull
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
@@ -74,9 +78,9 @@ public class AdapterPoint extends ArrayAdapter<Point> {
                 distanceText = df.format(d) + " km";
             }
             holder.display_distance.setText(distanceText);
-            int color = Color.GREEN;
+            int color = Color.RED;
             if (points.get(position).isDone())
-                color = Color.RED;
+                color = Color.GREEN;
             view.setBackgroundColor(color);
         }catch (Exception e){
 

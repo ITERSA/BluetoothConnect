@@ -30,5 +30,9 @@ AIzaSyDG24BDJKM5y3XDlVCwN4CYUBMtvCFdTnQ
     <string name="key_maptype">key_maptype</string>
     <string name="key_filelist">key_filelist</string>
     <string name="key_firsttime">key_firsttime</string>
+    <string name="quit_app">¿Desea terminar la campaña? El estado se perderá...</string>
+    <string name="yes">Terminar</string>
+    <string name="No">Continuar</string>
+
     <!-- Strings related to Settings -->
 </resources>
