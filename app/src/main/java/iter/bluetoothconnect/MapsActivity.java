@@ -106,6 +106,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle toggle;
     private ListView listViewPoints;
+    private boolean stateHasChanged;
    // private  AdapterPoint ap;
 
     @Override
@@ -128,9 +129,33 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setSubtitle(username);
         mRequestingLocationUpdates = false;
-        toggle = new ActionBarDrawerToggle(this,drawerLayout, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        toggle = new ActionBarDrawerToggle(this,drawerLayout, R.string.navigation_drawer_open, R.string.navigation_drawer_close){
+            @Override
+            public void onDrawerStateChanged(int newState) {
+                if ((newState == DrawerLayout.STATE_SETTLING) &&(!drawerLayout.isDrawerOpen(Gravity.LEFT))){
+                    //Log.d("Drawer", "isDrawerOpen");
+                    if (stateHasChanged){
+                        updateListView();
+                        stateHasChanged = false;
+                    }
+                }
+                super.onDrawerStateChanged(newState);
+            }
+        };
+       /* toggle.setToolbarNavigationClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (!drawerLayout.isDrawerOpen(Gravity.LEFT)){
+                    if (stateHasChanged){
+                        updateListView();
+                        stateHasChanged = false;
+                    }
+                }
+            }
+        });*/
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
+
         listViewPoints = (ListView)findViewById(R.id.list_drawer);
         listViewPoints.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -194,7 +219,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             mCurrentLocation = locationResult.getLastLocation();
                             updateMyPos(mCurrentLocation);
                             updateDistances();
-                            updateListView();
+                            stateHasChanged = true;
+                            //updateListView();
                         }
                     }
                 }
@@ -209,6 +235,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
         builder.addLocationRequest(mLocationRequest);
         mLocationSettingsRequest = builder.build();
+
+        stateHasChanged = true;
     }
 
 
@@ -333,7 +361,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         }
                     }
                 }
-                updateListView();
+                stateHasChanged = true;
+                //updateListView();
                 //TODO update point status in server
             }
         }
@@ -610,7 +639,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      */
     private void goToPosition(LatLng latLng){
         if ((latLng != null) && (mMap != null)){
-            //LatLng latLng = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,15.0f));
         }else{
             Toast.makeText(this,"No GPS coordiates available", Toast.LENGTH_LONG).show();
@@ -623,24 +651,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void updateListView(){
         AdapterPoint ap = new AdapterPoint(this, android.R.layout.two_line_list_item, points);
         listViewPoints.setAdapter(ap);
-       // ap.notifyDataSetChanged();
-      /*  this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                AdapterPoint ap = (AdapterPoint)listViewPoints.getAdapter();
-                ap.getPoints().clear();
-                ap.getPoints().addAll(points);
+        //ap.notifyDataSetChanged();
+        //listViewPoints.invalidateViews();
+        /*AdapterPoint ap = (AdapterPoint)listViewPoints.getAdapter();
+        ap.refreshPoints((ArrayList<Point>) points.clone());*/
 
-                listViewPoints.invalidateViews();
-                listViewPoints.refreshDrawableState();
-            }
-        });*/
-        /*listViewPoints
-        ap.getPoints().clear();
-        ap.getPoints().addAll(points);
-        ap.notifyDataSetChanged();
-        listViewPoints.invalidateViews();
-        listViewPoints.refreshDrawableState();*/
     }
 
     private void updateCircle(LatLng currentPoint){

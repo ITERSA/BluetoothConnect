@@ -47,8 +47,10 @@ public class AdapterPoint extends ArrayAdapter<Point> {
         public TextView display_distance;
     }
 
-    public ArrayList<Point> getPoints() {
-        return points;
+    public void refreshPoints(ArrayList<Point> points) {
+        points.clear();
+        this.points = points;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -85,7 +87,6 @@ public class AdapterPoint extends ArrayAdapter<Point> {
         }catch (Exception e){
 
         }
-        //view.setTag(position);
         return view;
     }
 }
