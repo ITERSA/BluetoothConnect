@@ -802,7 +802,7 @@ public class DataActivity extends AppCompatActivity  {
                 for (String pair : dataList) {
                     String[] key_val = pair.split(divider2);
                     if (key_val != null){
-                        if (key_val.length > 0){
+                        if (key_val.length == 2){
                             if ((key_val[1] != null) && (key_val[1].startsWith("["))){
                                 //if start with '[' , remove brackets and parse _ and |
                                 if (key_val[1].length() > 2){
@@ -814,7 +814,8 @@ public class DataActivity extends AppCompatActivity  {
                                 if ((key_val[0] != null) && key_val[1] != null)
                                     insertIntoMap(key_val[0], key_val[1]);
                             }
-                        }
+                        }/*else
+                            Log.v("current_data", "EMPTY!!!");*/
                     }
                 }
             }
@@ -828,11 +829,11 @@ public class DataActivity extends AppCompatActivity  {
         //Quitamos corchetes de inicio([) y final (]/r/n)
 
         for (int i = 0 ; i < chunk.length; i++){
-          //  Log.v("current_data", "initial: " + chunk[i]);
+            //Log.v("current_data", "initial: " + chunk[i]);
             int initOfLineIndex =  chunk[i].indexOf("[");
             int endOfLineIndex = chunk[i].lastIndexOf("\r");
             if ((initOfLineIndex == 0) && (endOfLineIndex == chunk[i].length() - 1)){
-               // Log.v("current_data", "Well formed");
+              // Log.v("current_data", "Well formed");
 
                 String dataInPrint = chunk[i].substring(initOfLineIndex + 1, endOfLineIndex - 1);
                 // if toggle button is checked, then add data parsed to series for showing in Plot
@@ -863,7 +864,7 @@ public class DataActivity extends AppCompatActivity  {
                    // locationText = locationText.replace(",",".");
                     dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " " + dataInPrint + ","+ locationText +"\n");
                     updateInfoWidget();
-                   // Log.v("DataActivity", dataInPrint);
+                //    Log.v("DataActivity", dataInPrint);
                     /***/
 
 
