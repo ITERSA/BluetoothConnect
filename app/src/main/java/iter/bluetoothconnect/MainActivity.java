@@ -13,23 +13,19 @@ import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
 import android.provider.Settings;
+import android.support.constraint.Group;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.SwitchCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.animation.AlphaAnimation;
-import android.view.animation.Animation;
-import android.view.animation.LinearInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -74,6 +70,7 @@ public class MainActivity extends AppCompatActivity{
     private SharedPreferences sharedPref;
     private String currentBTMac;
     private AlertDialog alert;
+    private Button btStart;
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -95,8 +92,7 @@ public class MainActivity extends AppCompatActivity{
                 //progressbar
                 int count = list.size();
                 if (count == 0) {
-                    String notif = "No se han detectado dispositivos";
-                    showGlobalToast(notif);
+                    showGlobalToast(getResources().getString(R.string.no_device));
                 }
                 progressBar.setVisibility(View.GONE);
             }
@@ -105,10 +101,13 @@ public class MainActivity extends AppCompatActivity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        setTheme(R.style.AppTheme);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         sharedPref = getSharedPreferences(getString(R.string.key_configs),Context.MODE_PRIVATE);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        getSupportActionBar().setDisplayShowTitleEnabled(true);
 
         globalToast = Toast.makeText(getApplicationContext(), null, Toast.LENGTH_LONG);
         spinner = (Spinner)findViewById(R.id.spinnerMap);
@@ -123,13 +122,36 @@ public class MainActivity extends AppCompatActivity{
                 if (mBluetoothAdapter.isEnabled()){
                     if (mBluetoothAdapter.isDiscovering()) {
                         mBluetoothAdapter.cancelDiscovery();
-                        showGlobalToast("Proceso reiniciado");
+                        showGlobalToast(getResources().getString(R.string.restart));
                     }
                     list.clear();
                     mNewDevicesArrayAdapter.notifyDataSetChanged();
                    askPermissions();
                 }else{
-                    showGlobalToast("Bluetooth desactivado");
+                    //showGlobalToast(getResources().getString(R.string.bt_inactive));
+
+                    // Zeus: solicitar activación de bluetooth
+                    AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+                    alertDialog.setIcon(R.mipmap.ic_launcher);
+                    alertDialog.setTitle(R.string.bluetooth);
+                    alertDialog.setMessage(R.string.bt_inactive);
+                    alertDialog.setPositiveButton(R.string.activate, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog,int which) {
+                            //Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                            //startActivity(discoverableIntent);
+                            BluetoothAdapter.getDefaultAdapter().enable();
+                        }
+                    });
+                    // on pressing cancel button
+                    alertDialog.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+                    alert = alertDialog.create();
+                    if (!alert.isShowing())
+                        alertDialog.show();
+
                 }
             }
         });
@@ -137,10 +159,13 @@ public class MainActivity extends AppCompatActivity{
         progressBar = (ProgressBar)findViewById(R.id.progressBar);
         progressBar.setVisibility(View.GONE);
         listItems = (ListView)findViewById(R.id.leads_list);
-
+        //RelativeLayout emptyText = (RelativeLayout) findViewById(R.id.relLayoutEmptyText);
+        Group emptyText = (Group)findViewById(R.id.text_group);
+        listItems.setEmptyView(emptyText);
         list = new ArrayList<String>();
 
-        mNewDevicesArrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_activated_1, list);
+        //mNewDevicesArrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_activated_1, list);
+        mNewDevicesArrayAdapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.bt_item_activated, list);
         listItems.setAdapter(mNewDevicesArrayAdapter);
 
         listItems.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -156,6 +181,10 @@ public class MainActivity extends AppCompatActivity{
                 // Get the device MAC address, which is the last 17 chars in the View
                 currentBTMac= info.substring(info.length() - 17);
                 //listItems.setItemChecked(position, true);
+                //btStart.setBackground(R.drawable.my_button_active);
+                btStart.setBackgroundResource(R.drawable.my_button_active);
+                TextView tvTemporal = (TextView)findViewById(R.id.campo_texto_temporal);
+                tvTemporal.setText(info);
             }
             }
         });
@@ -178,7 +207,7 @@ public class MainActivity extends AppCompatActivity{
             prefEditor.apply();
         }else
             loadJsonFromSharedpreferences();
-        Button btStart = (Button)findViewById(R.id.btMap);
+        btStart = (Button)findViewById(R.id.btMap);
         btStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -206,7 +235,7 @@ public class MainActivity extends AppCompatActivity{
                     }
                 }
             }else
-                showGlobalToast("Selecciona un dispositivo bluetooth de la lista");
+                showGlobalToast(getResources().getString(R.string.bt_select));
             }
         });
     }
@@ -232,23 +261,26 @@ public class MainActivity extends AppCompatActivity{
         invalidateOptionsMenu();
     }
 
-    @Override
+    // Zeus
+   /* @Override
     protected void onStart() {
         super.onStart();
         final LocationManager manager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
         if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
             AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
-            alertDialog.setTitle("Configuración GPS");
-            alertDialog.setMessage("GPS no está habilitado, ¿Deseas habilitarlo?");
-            alertDialog.setPositiveButton("Habilitar GPS", new DialogInterface.OnClickListener() {
+            alertDialog.setIcon(R.mipmap.ic_launcher);
+            alertDialog.setTitle(R.string.gps);
+            alertDialog.setMessage(R.string.gps_inactive);
+            alertDialog.setPositiveButton(R.string.activate, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog,int which) {
                     Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                     dialog.dismiss();
                     startActivity(intent);
+
                 }
             });
             // on pressing cancel button
-            alertDialog.setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+            alertDialog.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.dismiss();
                 }
@@ -257,13 +289,13 @@ public class MainActivity extends AppCompatActivity{
             if (!alert.isShowing())
                 alertDialog.show();
         }
-    }
+    }*/
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if ((requestCode == REQUEST_ENABLE_BT) && (resultCode == RESULT_OK))
-            //Toast.makeText(getApplicationContext(),"Bluetooth activado",Toast.LENGTH_SHORT).show();
-            showGlobalToast("Bluetooth activado");
+            //Toast.makeText(getApplicationContext(),R.string.bt_on,Toast.LENGTH_SHORT).show();
+            showGlobalToast(getResources().getString(R.string.bt_on));
         super.onActivityResult(requestCode, resultCode, data);
     }
 
@@ -287,7 +319,7 @@ public class MainActivity extends AppCompatActivity{
     public boolean onCreateOptionsMenu(Menu menu) {
 
         getMenuInflater().inflate(R.menu.menu_init,menu);
-        MenuItem item = menu.findItem(R.id.myswitch);
+       /* MenuItem item = menu.findItem(R.id.myswitch);
         item.setActionView(R.layout.switch_layout);
 
         SwitchCompat switchCompat = (SwitchCompat)item.getActionView().findViewById(R.id.switchForActionBar);
@@ -299,7 +331,7 @@ public class MainActivity extends AppCompatActivity{
                         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                         startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
                     }else{
-                        showGlobalToast("Bluetooth ya activado");
+                        showGlobalToast(getResources().getString(R.string.bt_on);
                     }
                 }else{
 
@@ -314,8 +346,9 @@ public class MainActivity extends AppCompatActivity{
             switchCompat.setChecked(mBluetoothAdapter.isEnabled());
 
         checkIfUploadFiles(menu.findItem(R.id.action_upload));
-
+*/
         return true;
+
     }
 
     @Override
@@ -329,7 +362,7 @@ public class MainActivity extends AppCompatActivity{
                     //TODO if files uploaded, turn button disable
                 }else{
                     item.setEnabled(false);
-                    showGlobalToast("No hay ficheros para enviar");
+                    showGlobalToast(getResources().getString(R.string.no_files));
                 }
                 return true;
             case R.id.action_reload:
@@ -394,8 +427,13 @@ public class MainActivity extends AppCompatActivity{
         if (listSpinner.size() == 0){
             listSpinner.add("-");
         }
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        //ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
+        //spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(this, R.layout.spinner_item, listSpinner);
+        spinnerAdapter.setDropDownViewResource(R.layout.spinner_item);
+
         spinner.setAdapter(spinnerAdapter);
         spinnerAdapter.notifyDataSetChanged();
     }
@@ -453,7 +491,8 @@ public class MainActivity extends AppCompatActivity{
     * */
     private ArrayList<String> loadJson(JSONArray jsonArray){
         ArrayList<String> nameList = new ArrayList<>();
-        nameList.add("-");
+        String single = getResources().getString(R.string.single); // Zeus
+        nameList.add(single);
         try {
             int size = jsonArray.length();
             for (int i= 0; i < size; i++ ){
@@ -481,5 +520,22 @@ public class MainActivity extends AppCompatActivity{
             }
         }else
             updateSpinner(null);
+    }
+
+    @Override // Zeus
+    public void onBackPressed() {
+        AlertDialog d = new AlertDialog.Builder(this)
+                .setTitle(R.string.app_name)
+                .setIcon(R.mipmap.ic_launcher)
+                .setMessage(getString(R.string.quit_app))
+                .setNegativeButton(getString(R.string.back), null)
+                .setPositiveButton(getString(R.string.exit), new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        MainActivity.super.onBackPressed();
+                    }
+                }).create();
+        d.show();
     }
 }

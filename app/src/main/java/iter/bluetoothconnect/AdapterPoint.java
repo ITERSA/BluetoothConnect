@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.res.ResourcesCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -60,10 +61,11 @@ public class AdapterPoint extends ArrayAdapter<Point> {
         final ViewHolder holder;
         try{
             if (view == null){
-                view = inflater.inflate(android.R.layout.two_line_list_item, null);
+               //view = inflater.inflate(android.R.layout.two_line_list_item, null);
+                view = inflater.inflate(R.layout.two_line_list_item, null);
                 holder = new ViewHolder();
-                holder.display_name = (TextView) view.findViewById(android.R.id.text1);
-                holder.display_distance = (TextView) view.findViewById(android.R.id.text2);
+                holder.display_name = (TextView) view.findViewById(R.id.textView);
+                holder.display_distance = (TextView) view.findViewById(R.id.textView2);
                 view.setTag(holder);
 
             }else{
@@ -80,9 +82,9 @@ public class AdapterPoint extends ArrayAdapter<Point> {
                 distanceText = df.format(d) + " km";
             }
             holder.display_distance.setText(distanceText);
-            int color = Color.RED;
+            int color = ResourcesCompat.getColor(ctx.getResources(), R.color.itemIsNotDone, null);
             if (points.get(position).isDone())
-                color = Color.GREEN;
+                color = ResourcesCompat.getColor(ctx.getResources(), R.color.itemIsDone, null);
             view.setBackgroundColor(color);
         }catch (Exception e){
 

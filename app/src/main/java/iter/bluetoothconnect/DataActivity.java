@@ -29,11 +29,13 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.LinearInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
@@ -123,7 +125,7 @@ public class DataActivity extends AppCompatActivity  {
     private String startDate;
     private GoogleApiClient mGoogleApiClient;
 
-    private LinearLayout llMenuSlope;
+    //private LinearLayout llMenuSlope;
     private Button btSaveData;
 
     //private LocationRequest mLocationRequest;
@@ -172,7 +174,7 @@ public class DataActivity extends AppCompatActivity  {
                 showCurrentValue(isChecked);
             if (isChecked){
                 Log.v("DataActivity", "Recording...");
-                hideOptionMenu();
+                offOptionMenu();
                // plot.setTitle("");
                 panZoom.setEnabled(false);
                 dataToFile.setLength(0);
@@ -195,7 +197,7 @@ public class DataActivity extends AppCompatActivity  {
                 Log.v("DataActivity", "Stop recording");
                 panZoom.setEnabled(true);
                 forceUpdateSlopeText();
-                showOptionMenu();
+                activeOptionMenu();
             }
 
             }
@@ -280,7 +282,7 @@ public class DataActivity extends AppCompatActivity  {
             }
         });
 
-        llMenuSlope = (LinearLayout)findViewById(R.id.llMenuSlope);
+        //llMenuSlope = (LinearLayout)findViewById(R.id.llMenuSlope);
         btSaveData = (Button) findViewById(R.id.btOptions);
         btSaveData.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -348,9 +350,9 @@ public class DataActivity extends AppCompatActivity  {
             String fileName = (String)msg.obj;
             isDone = true;
             if (msg.what == 1)
-                Toast.makeText(getApplicationContext(),"Fichero subido con exito "+fileName, Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(),fileName + getResources().getString(R.string.up_success), Toast.LENGTH_LONG).show();
             else{
-                Toast.makeText(getApplicationContext(),"Error subiendo el fichero "+ fileName +" al FTP!", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(),getResources().getString(R.string.up_error) + fileName + getResources().getString(R.string.to_ftp), Toast.LENGTH_LONG).show();
                 updateFileList(fileName);
             }
                 }
@@ -366,7 +368,7 @@ public class DataActivity extends AppCompatActivity  {
             if (msg.what == 1){
                 UploadFileToFTPThread uploadFileToFTPThread = new UploadFileToFTPThread(currentPath);
                 uploadFileToFTPThread.start();
-                hideOptionMenu();
+                offOptionMenu();
             }else{
                 Toast.makeText(getApplicationContext(),"Error generando el fichero "+ (String)msg.obj, Toast.LENGTH_LONG).show();
             }
@@ -527,8 +529,10 @@ public class DataActivity extends AppCompatActivity  {
                 listSpinner.add(spinnerAdapter.getItem(i).toString());
             }
             listSpinner.add(name);
-            ArrayAdapter<String> spinnerAdapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
-            spinnerAdapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            //ArrayAdapter<String> spinnerAdapter2 = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, listSpinner);
+            ArrayAdapter<String> spinnerAdapter2 = new ArrayAdapter<String>(this, R.layout.spinner_item, listSpinner);
+            //spinnerAdapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerAdapter2.setDropDownViewResource(R.layout.spinner_item);
             spinner.setAdapter(spinnerAdapter2);
             spinnerAdapter2.notifyDataSetChanged();
       }
@@ -653,20 +657,35 @@ public class DataActivity extends AppCompatActivity  {
     /**
      *
      */
-    private void showOptionMenu(){
-        llMenuSlope.setVisibility(View.VISIBLE);
+    private void activeOptionMenu(){
+      //  llMenuSlope.setVisibility(View.VISIBLE);
+        if (!isDone) {
+            btSaveData.clearAnimation();
+            final Animation flashAnimation = new AlphaAnimation(1, 0);
+            flashAnimation.setDuration(500);
+            flashAnimation.setInterpolator(new LinearInterpolator());
+            flashAnimation.setRepeatCount(3);
+            flashAnimation.setRepeatMode(Animation.RESTART);
+            btSaveData.startAnimation(flashAnimation);
+        }
+        btSaveData.setBackgroundResource(R.drawable.my_button_active);
+        btSaveData.setEnabled(true);
+
     }
 
-    private void hideOptionMenu(){
-        llMenuSlope.setVisibility(View.GONE);
+    private void offOptionMenu(){
+        btSaveData.clearAnimation();
+        btSaveData.setBackgroundResource(R.drawable.my_button);
+        btSaveData.setEnabled(false);
+      //  llMenuSlope.setVisibility(View.GONE);
     }
 
-    private boolean isOptionsMenuShowed(){
+   /* private boolean isOptionsMenuActive(){
         boolean result = true;
-        if (llMenuSlope.getVisibility() == View.GONE)
-            result = false;
-        return result;
-    }
+        if (btSaveData.isActivated())
+        //    result = false;
+     return result;
+    }*/
 
     private void updateInfoWidget(){
 
@@ -700,9 +719,10 @@ public class DataActivity extends AppCompatActivity  {
   private void showDialog(){
       AlertDialog d = new AlertDialog.Builder(DataActivity.this)
               .setTitle(R.string.app_name)
-              .setIcon(android.R.drawable.ic_menu_save)
-              .setMessage("¿Desea Guardar y Enviar los datos al FTP?")
-              .setPositiveButton("Si", new DialogInterface.OnClickListener() {
+              //.setIcon(android.R.drawable.ic_menu_save)
+              .setIcon(R.mipmap.ic_launcher)
+              .setMessage(R.string.ftp)
+              .setPositiveButton(getString(R.string.send), new DialogInterface.OnClickListener() {
                   @Override
                   public void onClick(DialogInterface dialog, int which) {
                       if (dataToFile.length() > 0) {
@@ -712,7 +732,7 @@ public class DataActivity extends AppCompatActivity  {
                       }
                   }
               })
-              .setNegativeButton("No", new DialogInterface.OnClickListener() {
+              .setNegativeButton(getString(R.string.cancel), new DialogInterface.OnClickListener() {
                   @Override
                   public void onClick(DialogInterface dialog, int which) {
                       dialog.dismiss();
@@ -722,7 +742,7 @@ public class DataActivity extends AppCompatActivity  {
   }
 
     private void showSaveDialog(){
-        if (isOptionsMenuShowed()){
+       // if (btSaveData.isActivated()){
 
             int permission = ContextCompat.checkSelfPermission(DataActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
             if (permission == PackageManager.PERMISSION_GRANTED) {
@@ -734,7 +754,7 @@ public class DataActivity extends AppCompatActivity  {
                             MY_PERMISSIONS_REQUEST_WRITE_STORAGE);
                 }
             }
-        }
+      //  }
     }
 
 
@@ -795,7 +815,7 @@ public class DataActivity extends AppCompatActivity  {
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
     //initial divider1 = ',' divider2 = ':'
     private void customParser(String divider1, String divider2, String data){
-       // Log.v("current_data", data);
+        Log.v("current_data", data);
         if (data != null && data.length() >  0){
             String[] dataList = data.split(divider1);
             if (dataList != null){
@@ -1159,4 +1179,20 @@ public class DataActivity extends AppCompatActivity  {
                 });
     }
 
+    @Override // Zeus
+    public void onBackPressed() {
+        AlertDialog d = new AlertDialog.Builder(this)
+                .setTitle(R.string.app_name)
+                .setIcon(R.mipmap.ic_launcher)
+                .setMessage(getString(R.string.quit_data))
+                .setNegativeButton(getString(R.string.No), null)
+                .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        DataActivity.super.onBackPressed();
+                    }
+                }).create();
+        d.show();
+    }
 }

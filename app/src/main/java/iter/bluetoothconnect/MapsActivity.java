@@ -12,8 +12,10 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -109,10 +111,38 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private boolean stateHasChanged;
    // private  AdapterPoint ap;
 
+    private AlertDialog alert;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        // Zeus: trasladado de main
+        final LocationManager manager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+            AlertDialog.Builder alertDialog = new AlertDialog.Builder(MapsActivity.this);
+            alertDialog.setIcon(R.mipmap.ic_launcher);
+            alertDialog.setTitle(R.string.gps);
+            alertDialog.setMessage(R.string.gps_inactive);
+            alertDialog.setPositiveButton(R.string.activate, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog,int which) {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    dialog.dismiss();
+                    startActivity(intent);
+
+                }
+            });
+            // on pressing cancel button
+            alertDialog.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+            alert = alertDialog.create();
+            if (!alert.isShowing())
+                alertDialog.show();
+        }
 
         infoPanel = (CardView) findViewById(R.id.cardView);
         infoPanel.setOnClickListener(new View.OnClickListener() {
@@ -128,11 +158,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setSubtitle(username);
+
+        if (username.isEmpty()){ // Zeus
+            String emptyUser = getResources().getString(R.string.emptyUser);
+            getSupportActionBar().setSubtitle(emptyUser);
+        }
+
         mRequestingLocationUpdates = false;
         toggle = new ActionBarDrawerToggle(this,drawerLayout, R.string.navigation_drawer_open, R.string.navigation_drawer_close){
             @Override
             public void onDrawerStateChanged(int newState) {
-                if ((newState == DrawerLayout.STATE_SETTLING) &&(!drawerLayout.isDrawerOpen(Gravity.LEFT))){
+                if ((newState == DrawerLayout.STATE_SETTLING) &&(!drawerLayout.isDrawerOpen(Gravity.START))){
                     //Log.d("Drawer", "isDrawerOpen");
                     if (stateHasChanged){
                         updateListView();
@@ -160,7 +196,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         listViewPoints.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                drawerLayout.closeDrawer(Gravity.LEFT);
+                drawerLayout.closeDrawer(Gravity.START);
                 Point p = points.get(position);
                 goToPosition(p.getLatlng());
                 p.marker.showInfoWindow();
@@ -253,7 +289,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        mMap.getUiSettings().setZoomControlsEnabled(true);
+        mMap.getUiSettings().setZoomControlsEnabled(false);
         mMap.getUiSettings().setMapToolbarEnabled(false);
         mMap.getUiSettings().setRotateGesturesEnabled(false);
         mMap.getUiSettings().setTiltGesturesEnabled(false);
@@ -284,6 +320,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStart() {
         super.onStart();
+
         if (sm != null){
             sm.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
             sm.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
@@ -335,9 +372,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mMap.setMapType(mapType);
                 return true;
             case R.id.myLocation:
-                if (mCurrentLocation != null)
+                if (mCurrentLocation != null) {
                     goToPosition(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude()));
-                return true;
+                    return true;
+                } else {
+                    Toast.makeText(this, getResources().getString(R.string.no_gps), Toast.LENGTH_LONG).show();
+                }
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -353,7 +393,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if (p.getName().contentEquals(pointName)){
                             p.setStatus( ""+System.currentTimeMillis());
                             if (p.isDone()){
-                                BitmapDescriptor  bd = BitmapDescriptorFactory.fromResource(R.drawable.done_notification_24px);
+
+                                // BitmapDescriptor  bd = BitmapDescriptorFactory.fromResource(R.drawable.done_notification_24px);
+                                BitmapDescriptor  bd = BitmapDescriptorFactory.fromResource(R.drawable.point_green);
                                 p.marker.setIcon(bd);
                             }
                             updatePanelInfo(p);
@@ -373,7 +415,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         AlertDialog d = new AlertDialog.Builder(this)
                 .setTitle(R.string.app_name)
                 .setIcon(R.mipmap.ic_launcher)
-                .setMessage(getString(R.string.quit_app))
+                .setMessage(getString(R.string.quit_map))
                 .setNegativeButton(getString(R.string.No), null)
                 .setPositiveButton(getString(R.string.yes), new DialogInterface.OnClickListener() {
 
@@ -428,7 +470,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng pos = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
         if (myPos == null){
             //Compose marker
-            Marker currentPos = mMap.addMarker(new MarkerOptions().anchor(0.5f, 0.5f).position(pos).title("Altitude: "+ Math.round(location.getAltitude())+ " m").icon(BitmapDescriptorFactory.fromResource(R.drawable.uparrow_24_blue)));
+
+            Marker currentPos = mMap.addMarker(new MarkerOptions().anchor(0.5f, 0.5f).position(pos).title(getResources().getString(R.string.altitude) + Math.round(location.getAltitude())+ " m").icon(BitmapDescriptorFactory.fromResource(R.drawable.marker)));
+
             //compose circle
             CircleOptions circleOptions = new CircleOptions();
             circleOptions.center(pos);
@@ -456,7 +500,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 int size =  array.length();
                 LatLngBounds.Builder builder = new LatLngBounds.Builder();
                 points = new ArrayList<Point>();
-                BitmapDescriptor  bd = BitmapDescriptorFactory.fromResource(android.R.drawable.ic_delete);
+
+                // BitmapDescriptor  bd = BitmapDescriptorFactory.fromResource(android.R.drawable.ic_delete);
+                BitmapDescriptor  bd = BitmapDescriptorFactory.fromResource(R.drawable.point_white);
+
                 for (int i = 0; i < size; i++){
                     JSONObject point = (JSONObject) array.get(i);
                     String title = point.getString("name");
@@ -478,7 +525,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     builder.include(currentPoint);
                 }
                 //Log.v("map", ""+points.size());
-                AdapterPoint ap = new AdapterPoint(this, android.R.layout.two_line_list_item, points);
+                //AdapterPoint ap = new AdapterPoint(this, android.R.layout.two_line_list_item, points);
+                AdapterPoint ap = new AdapterPoint(this, R.layout.two_line_list_item, points);
                 listViewPoints.setAdapter(ap);
                 int width = getResources().getDisplayMetrics().widthPixels;
                 int height = getResources().getDisplayMetrics().heightPixels;
@@ -641,7 +689,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         if ((latLng != null) && (mMap != null)){
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,15.0f));
         }else{
-            Toast.makeText(this,"No GPS coordiates available", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getResources().getString(R.string.no_gps), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -649,7 +697,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      * force redraw listview of points
      */
     private void updateListView(){
-        AdapterPoint ap = new AdapterPoint(this, android.R.layout.two_line_list_item, points);
+        //AdapterPoint ap = new AdapterPoint(this, android.R.layout.two_line_list_item, points);
+        AdapterPoint ap = new AdapterPoint(this, R.layout.two_line_list_item, points);
         listViewPoints.setAdapter(ap);
         //ap.notifyDataSetChanged();
         //listViewPoints.invalidateViews();
