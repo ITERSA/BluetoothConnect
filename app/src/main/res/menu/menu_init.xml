@@ -3,26 +3,26 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
 
-    <item
+    <!--<item
         android:id="@+id/myswitch"
         android:orderInCategory="100"
-        android:icon="@android:drawable/stat_sys_data_bluetooth"
-        android:title="Bluetooth"
+        android:icon="@drawable/ic_bluetooth_white_24dp"
+        android:title="@string/bluetooth"
         app:showAsAction="always"
         android:actionLayout="@layout/switch_layout"
-        />
+        />-->
     <item
         android:id="@+id/action_upload"
-        android:icon="@android:drawable/ic_menu_upload"
-        android:orderInCategory="300"
         android:enabled="false"
-        android:title="Upload"
+        android:icon="@drawable/ic_file_upload_white_24dp"
+        android:orderInCategory="300"
+        android:title="@string/upload"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_reload"
-        android:icon="@android:drawable/stat_notify_sync"
+        android:icon="@drawable/ic_sync_white_24dp"
         android:orderInCategory="400"
         android:enabled="true"
-        android:title="Reload"
+        android:title="@string/reload"
         app:showAsAction="ifRoom" />
 </menu>

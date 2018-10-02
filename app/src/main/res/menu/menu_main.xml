@@ -4,13 +4,14 @@
     tools:context=".MainActivity">
 
     <item android:id="@+id/change_map"
-        android:title="Lista"
-        android:icon="@android:drawable/ic_menu_mapmode"
+        android:title="@string/change_map"
+        android:icon="@drawable/ic_map_white_24dp"
         android:orderInCategory="100"
         app:showAsAction="ifRoom" />
+
     <item android:id="@+id/myLocation"
-        android:title="Location"
-        android:icon="@android:drawable/ic_menu_mylocation"
+        android:title="@string/location"
+        android:icon="@drawable/ic_gps_fixed_white_24dp"
         android:orderInCategory="100"
         app:showAsAction="ifRoom" />
 
