@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_activity_settings">Ajustes</string>
+    <string name="scan">Buscar</string>
+    <string name="user">Nombre de usuario</string>
+    <string name="reload">Recargar</string>
+    <string name="quit_map">¿Desea terminar la campaña? El estado se perderá.</string>
+    <string name="quit_data">¿Desea terminar la medición? Los datos no guardados se perderán.</string>
+    <string name="quit_app">¿Desea salir de la aplicación?</string>
+    <string name="upload">Enviar</string>
+    <string name="single">Medida independiente</string>
+    <string name="start">Comenzar</string>
+    <string name="save">Guardar</string>
+    <string name="exit">Salir</string>
+    <string name="back">Volver</string>
+    <string name="stop">Detener</string>
+    <string name="pause">Pausar</string>
+    <string name="yes">Terminar</string>
+    <string name="No">Continuar</string>
+    <string name="change_map">Cambiar mapa</string>
+    <string name="title_activity_maps">Mapa</string>
+    <string name="temporal">Dispositivo no encontrado</string>
+    <string name="temporal2">Pulse scanear par buscar nuevos dispositivos</string>
+    <string name="emptyUser">Usuario no definido</string>
+    <string name="unknown">Distancia</string>
+    <string name="report">Iniciar registro</string>
+    <string name="play">Iniciar</string>
+    <string name="ftp">¿Desea guardar y enviar los datos a través de FTP?</string>
+    <string name="send">Enviar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="nopoint">Punto</string>
+    <string name="gps_inactive">El GPS no está habilitado, ¿Deseas habilitarlo?</string>
+    <string name="no_device">No se ha detectado ningún dispositivo</string>
+    <string name="bt_inactive">El Bluetooth no está habilitado. ¿Desea habilitarlo?</string>
+    <string name="restart">Proceso reiniciado</string>
+    <string name="activate">Habilitar</string>
+    <string name="location">Posición</string>
+    <string name="no_gps">Las coordenadas GPS no están disponibles. Por favor habilite el GPS o espere unos segundos.</string>
+    <string name="bt_select">Selecciona un dispositivo Bluetooth de la lista.</string>
+    <string name="bt_on">Bluetooth activado.</string>
+    <string name="no_files">No hay ficheros para enviar.</string>
+    <string name="altitude">Altitud</string>
+    <string name="up_error">"Error enviando "</string>
+    <string name="to_ftp">" por FTP."</string>
+    <string name="up_success">" enviado con éxito."</string>
+</resources>

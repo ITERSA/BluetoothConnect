@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">BluetoothConnect</string>
+    <string name="app_name" translatable="false">BluetoothConnect</string>
     <string-array name="items_name">
-        <item>co2</item>
+        <item>CO<small>2</small></item>
         <item>DIS</item>
         <item>TAM</item>
         <item>HAM</item>
@@ -11,10 +11,8 @@
     <string name="title_activity_settings">Settings</string>
 
     <!-- Strings related to Settings -->
-    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">
-AIzaSyDG24BDJKM5y3XDlVCwN4CYUBMtvCFdTnQ
-    </string>
-    <string name="HOST">http://193.147.109.3:5000/data</string>
+    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyDG24BDJKM5y3XDlVCwN4CYUBMtvCFdTnQ</string>
+    <string name="HOST" translatable="false">http://193.147.109.3:5000/data</string>
     <string name="campaing_list">campaing_list</string>
     <string name="extra_key_position_item">position_item</string>
     <string name="extra_key_username">key_username</string>
@@ -30,9 +28,61 @@ AIzaSyDG24BDJKM5y3XDlVCwN4CYUBMtvCFdTnQ
     <string name="key_maptype">key_maptype</string>
     <string name="key_filelist">key_filelist</string>
     <string name="key_firsttime">key_firsttime</string>
-    <string name="quit_app">¿Desea terminar la campaña? El estado se perderá...</string>
-    <string name="yes">Terminar</string>
-    <string name="No">Continuar</string>
+    <string name="quit_app">Do you want to close the app?</string>
+    <string name="quit_map">Do you want to end campaign? Status will get lost.</string>
+    <string name="quit_data">Do you want to close the test? Unsaved data will get lost.</string>
+    <string name="yes">Finish</string>
+    <string name="exit">Exit</string>
+    <string name="back">Back</string>
 
-    <!-- Strings related to Settings -->
+    <string name="bluetooth" translatable="false">Bluetooth</string>
+    <string name="upload">Upload</string>
+    <string name="reload">Reload</string>
+
+    <string name="change_map">Change map</string>
+    <string name="location">Location</string>
+
+    <string name="user">User name</string>
+    <string name="single">Single test</string>
+    <string name="scan">Scan</string>
+    <string name="start">Start</string>
+    <string name="img">Image</string>
+    <string name="temporal">No device detected</string>
+    <string name="temporal2">Press scan to search for new devices</string>
+    <string name="no_device">Any device detected</string>
+    <string name="no_files">There is no data to upload.</string>
+
+    <string name="emptyUser">Undefined user</string>
+    <string name="nopoint">Point</string>
+    <string name="unknown">Distance</string>
+    <string name="play">Play</string>
+
+    <string name="none" translatable="false">-</string>
+    <string name="c" translatable="false">- ºC</string>
+    <string name="v" translatable="false">- V</string>
+
+    <string name="stop">Stop</string>
+    <string name="pause">Pause</string>
+    <string name="save">Save</string>
+    <string name="report">Start report</string>
+    <string name="No">Continue</string>
+    <string name="ftp">Do you want to save and send data through FTP</string>
+    <string name="send">Send</string>
+    <string name="cancel">Cancel</string>
+    <string name="restart">Process restarted</string>
+    <string name="activate">Activate</string>
+    <string name="gps" translatable="false">GPS</string>
+    <string name="gps_inactive">GPS is not active. Do you want to activate it?</string>
+    <string name="no_gps">No GPS coordinates available. Please activate GPS or wait a few seconds.</string>
+    <string name="bt_inactive">Bluetooth is not active. Do you want to activate it?</string>
+    <string name="bt_select">Select a Bluetooth device from the list.</string>
+    <string name="bt_on">Bluetooth activated.</string>
+
+    <string name="altitude">Altitude:</string>
+
+    <string name="up_success"> uploaded successfully.</string>
+    <string name="up_error">Error uploading </string>
+    <string name="to_ftp"> through FTP.</string>
+
+
 </resources>
