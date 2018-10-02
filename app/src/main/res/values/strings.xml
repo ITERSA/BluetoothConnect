@@ -71,7 +71,7 @@
     <string name="cancel">Cancel</string>
     <string name="restart">Process restarted</string>
     <string name="activate">Activate</string>
-    <string name="gps" translatable="false">GPS</string>
+    <string name="gps" >GPS</string>
     <string name="gps_inactive">GPS is not active. Do you want to activate it?</string>
     <string name="no_gps">No GPS coordinates available. Please activate GPS or wait a few seconds.</string>
     <string name="bt_inactive">Bluetooth is not active. Do you want to activate it?</string>
