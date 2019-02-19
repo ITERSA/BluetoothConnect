@@ -212,13 +212,13 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onClick(View view) {
 
-            if (currentBTMac != ""){
+            if (!currentBTMac.equals("")){
                 //Log.v("MAC", currentBTMac);
                 int position = listItems.getCheckedItemPosition();
                 if (position != ListView.INVALID_POSITION){
                     int campaingPosition = spinner.getSelectedItemPosition();
                     String userName = etFieldName.getText().toString();
-                    if (userName == ""){
+                    if (userName.equals("")){
                         userName = "-";
                     }
                     if (campaingPosition > 0){// MAP ACTIVITY
@@ -477,8 +477,8 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onErrorResponse(VolleyError error) {
                 String currentError ="Error";
-                if (error != null)
-                    currentError = error.getMessage().toString();
+                if (error.getMessage() != null)
+                    currentError = error.getMessage();
                 loadJsonFromSharedpreferences();
                 Log.e("Response", currentError);
             }
