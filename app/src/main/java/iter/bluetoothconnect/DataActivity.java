@@ -385,7 +385,7 @@ public class DataActivity extends AppCompatActivity  {
                     if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
                         //mConnectedThread.write("+COMMAND:2\n");
-                        writeSocket("+COMMAND:0\n");
+                        writeSocket("+COMMAND:1\n");
                         //mConnectedThread.write("0");
                         mConnectedThread.start();
                         Log.v("Connect", "OK!");
@@ -420,10 +420,10 @@ public class DataActivity extends AppCompatActivity  {
     /*Stop bluetooth reader*/
     private void stopBluetoothReader(){
        /* if (mConnectedThread != null)
-            //mConnectedThread.write("+COMMAND:1\n");    //TODO Turn off led  replace -> "+COMMAND:1"
+            //mConnectedThread.write("+COMMAND:1\n");    //TODO Turn off led  replace -> "+COMMAND:0"
             mConnectedThread.write("+COMMAND:3\n");*/
-        writeSocket("+COMMAND:1\n");
-          //  mConnectedThread.write("1");    //TODO Turn off led  replace -> "+COMMAND:1"
+        writeSocket("+COMMAND:0\n");
+          //  mConnectedThread.write("1");    //TODO Turn off led  replace -> "+COMMAND:0"
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
                 btSocket.close();   //Close bluetooth socket
