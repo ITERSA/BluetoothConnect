@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android"
     android:opacity="opaque">
-    <item android:drawable="@color/colorPrimary"/>
+    <item android:drawable="@color/white"/>
     <item>
         <bitmap
             android:gravity="center"
             android:antialias="true"
-            android:src="@drawable/splash_icon"/>
+            android:src="@drawable/logoinvolcan"/>
+    </item>
+    <item>
+        <bitmap
+            android:gravity="bottom"
+            android:antialias="true"
+            android:src="@drawable/logo"/>
     </item>
 </layer-list>

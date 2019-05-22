@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
@@ -108,6 +109,13 @@ public class MainActivity extends AppCompatActivity{
         setContentView(R.layout.activity_main);
         sharedPref = getSharedPreferences(getString(R.string.key_configs),Context.MODE_PRIVATE);
         getSupportActionBar().setDisplayShowTitleEnabled(true);
+        try {
+            PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            String version = pInfo.versionName;
+            getSupportActionBar().setTitle("FluxMeter V"+version);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
 
         globalToast = Toast.makeText(getApplicationContext(), null, Toast.LENGTH_LONG);
         spinner = (Spinner)findViewById(R.id.spinnerMap);
