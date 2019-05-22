@@ -106,7 +106,7 @@ public class DataActivity extends AppCompatActivity  {
     private StringBuilder recDataString = new StringBuilder();
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    public static final String FTP_IP = "curronemesio.dyndns.org";
+    public static final String FTP_IP = "1nv0lc4n.dyndns.org";
     public static final int FTP_PORT = 12221;
     public static final String FTP_USER = "movgas";
     public static final String FTP_PASS = "m0vg4s";
