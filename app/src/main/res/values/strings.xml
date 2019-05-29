@@ -5,6 +5,7 @@
         <item>DIS</item>
         <item>TAM</item>
         <item>HAM</item>
+        <item>A00</item>
     </string-array>
 
     <string name="title_activity_maps">Map</string>

@@ -248,6 +248,7 @@ public class DataActivity extends AppCompatActivity  {
         plot.setPlotMargins(0, 0, 0, 0);
         plot.setPlotPadding(0, 0, 0, 0);
         plot.getLayoutManager().remove(plot.getRangeTitle());
+        plot.getGraph().setPaddingLeft(50);     //left marging labels cut off
 
         //plot.setRangeBottomMin(-10);
         /*plot.setRangeTopMax(400);
@@ -615,7 +616,7 @@ public class DataActivity extends AppCompatActivity  {
             if (serieName.contentEquals("co2"))
                 result = result * K;
 
-            Log.v("Slope",""+domainMin + " , "+domainMax + "  Slope: "+ result);
+            //Log.v("Slope",""+domainMin + " , "+domainMax + "  Slope: "+ result);
         }
         //Toast.makeText(DataActivity.this, "Slope range"+domainMin + " - "+domainMax ,Toast.LENGTH_LONG).show();
         return result;
@@ -670,7 +671,6 @@ public class DataActivity extends AppCompatActivity  {
         }
         btSaveData.setBackgroundResource(R.drawable.my_button_active);
         btSaveData.setEnabled(true);
-
     }
 
     private void offOptionMenu(){
@@ -950,6 +950,11 @@ public class DataActivity extends AppCompatActivity  {
             else
                 footer = String.format("\nRango_%s:(%d - %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
             data = data + footer;
+            double correlation2 = calculatePearsonCorrelation("A03", minX, maxX);
+
+            String footer2 =  String.format("\nRango_%s:(%d - %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", "A03", minX, maxX, calculateSlope("A03", minX, maxX), correlation2 * correlation2);
+            data = data + footer2;
+
             String filePrefix = campaingName.replaceAll("\\s+",""); //Remove white spaces
             filePrefix = filePrefix + "_" + pointName + "_" + userName;
             file = new File(folder, filePrefix + "_" + fileName+".txt");

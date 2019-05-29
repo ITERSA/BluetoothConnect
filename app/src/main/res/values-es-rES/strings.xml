@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="title_activity_settings">Ajustes</string>
-    <string name="scan">Buscar</string>
+    <string name="scan">Scan</string>
     <string name="user">Nombre de usuario</string>
     <string name="reload">Recargar</string>
     <string name="quit_map">¿Desea terminar la campaña? El estado se perderá.</string>
@@ -20,7 +20,7 @@
     <string name="change_map">Cambiar mapa</string>
     <string name="title_activity_maps">Mapa</string>
     <string name="temporal">Dispositivo no encontrado</string>
-    <string name="temporal2">Pulse scanear par buscar nuevos dispositivos</string>
+    <string name="temporal2">Pulse Scan para buscar nuevos dispositivos</string>
     <string name="emptyUser">Usuario no definido</string>
     <string name="unknown">Distancia</string>
     <string name="report">Iniciar registro</string>

@@ -499,8 +499,8 @@ public class MainActivity extends AppCompatActivity{
     * */
     private ArrayList<String> loadJson(JSONArray jsonArray){
         ArrayList<String> nameList = new ArrayList<>();
-        String single = getResources().getString(R.string.single); // Zeus
-        nameList.add(single);
+        //String single = getResources().getString(R.string.single); // Zeus
+        nameList.add("  -  ");
         try {
             int size = jsonArray.length();
             for (int i= 0; i < size; i++ ){
