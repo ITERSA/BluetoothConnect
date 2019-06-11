@@ -13,7 +13,7 @@
 
     <!-- Strings related to Settings -->
     <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyDG24BDJKM5y3XDlVCwN4CYUBMtvCFdTnQ</string>
-    <string name="HOST" translatable="false">https://fluxmeters.involcan.org/data</string>
+    <string name="HOST" translatable="false">http://fluxmeters.involcan.org/data</string>
     <string name="campaing_list">campaing_list</string>
     <string name="extra_key_position_item">position_item</string>
     <string name="extra_key_username">key_username</string>
