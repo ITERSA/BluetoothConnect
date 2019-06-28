@@ -801,15 +801,23 @@ public class DataActivity extends AppCompatActivity  {
         if ((!value.contains("NAN")) && (value.length() > 0)) {
             try {
                 Number n = Double.parseDouble(value);
-                if (n != null)
+                if (n != null) {
+                    if ((n == 0) && (serie.size() > 0))     //
+                        n = serie.getX(serie.size() - 1);
                     serie.addLast(null, n);
+                }
             } catch (NumberFormatException e) {
                 serie.addLast(null, 0);
             } catch (NullPointerException e) {
                 serie.addLast(null, 0);
             }
-        } else
-            serie.addLast(null, 0);
+        } else {
+            Number n1 = 0;
+            if (serie.size() > 0) {
+                n1 = serie.getX(serie.size() - 1);
+            }
+            serie.addLast(null, n1);
+        }
     }
 
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
