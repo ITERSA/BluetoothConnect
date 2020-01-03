@@ -84,7 +84,7 @@ import java.util.UUID;
 //http://cursoandroidstudio.blogspot.com.es/2015/10/conexion-bluetooth-android-con-arduino.html
 public class DataActivity extends AppCompatActivity  {
 
-    private static final int K = 1; //TODO change to value
+    private static final int K = 1; //TODO change to value...
     private static final int MY_PERMISSIONS_REQUEST_WRITE_STORAGE = 112;
     private static final int REQUEST_PERMISSIONS_FINE_LOCATION = 34;
     private Spinner spinner;
