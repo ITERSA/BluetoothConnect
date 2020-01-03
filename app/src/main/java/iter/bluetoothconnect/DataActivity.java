@@ -504,7 +504,8 @@ public class DataActivity extends AppCompatActivity  {
         String[] spinnerItems = getResources().getStringArray(R.array.items_name); //leemos valores de string
         for (int i = 0; i < spinnerItems.length; i++){
             ArrayList<Number> values = new ArrayList<Number>();
-            dataMapped.put(spinnerItems[i],new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, spinnerItems[i]));
+            //dataMapped.put(spinnerItems[i],new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, spinnerItems[i]));
+            dataMapped.put(spinnerItems[i],new SimpleXYSeries(values, values, spinnerItems[i]));
         }
     }
 
@@ -513,7 +514,7 @@ public class DataActivity extends AppCompatActivity  {
             dataMapped = new HashMap<String, SimpleXYSeries>();
         }
         ArrayList<Number> values = new ArrayList<Number>();
-        dataMapped.put(serieName, new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, serieName));
+        dataMapped.put(serieName, new SimpleXYSeries(values, values, serieName));
     }
 
     /**
@@ -792,6 +793,11 @@ public class DataActivity extends AppCompatActivity  {
      * @param value String with value
      */
     private void insertIntoMap(String key, String value){
+
+        if (key.contentEquals("TIME")){
+            updateTime(value);
+            return;
+        }
         SimpleXYSeries serie = dataMapped.get(key);
         if (serie == null) {
             initSerie(key);
@@ -802,21 +808,52 @@ public class DataActivity extends AppCompatActivity  {
             try {
                 Number n = Double.parseDouble(value);
                 if (n != null) {
-                    if ((n == 0) && (serie.size() > 0))     //
+                    Number n1 = 0;
+                    if ((n == n1) && (serie.size() > 0))     //
                         n = serie.getX(serie.size() - 1);
-                    serie.addLast(null, n);
+                    serie.addLast(0, n);
                 }
             } catch (NumberFormatException e) {
-                serie.addLast(null, 0);
+                serie.addLast(0, 0);
             } catch (NullPointerException e) {
-                serie.addLast(null, 0);
+                serie.addLast(0, 0);
             }
         } else {
             Number n1 = 0;
             if (serie.size() > 0) {
                 n1 = serie.getX(serie.size() - 1);
             }
-            serie.addLast(null, n1);
+            serie.addLast(0, n1);
+        }
+    }
+
+    /**
+     * Insert 'time' parameter at the end of each serie coordinate as X value
+     * @param time
+     */
+    private void updateTime(String time){
+        if (dataMapped != null){
+            for (SimpleXYSeries serie : dataMapped.values()){
+                //remove items in plot
+                int size = serie.size();
+                if (size > 0) {
+                    try {
+                        Number n = Double.parseDouble(time);
+                        serie.setX(n,size - 1);
+                    } catch (NumberFormatException e) {
+                        serie.setX(0,size - 1);
+                    } catch (NullPointerException e) {
+                        serie.setX(0,size - 1);
+                    }
+                }
+            }
+        }
+    }
+
+
+    private void parseChunk(String data){
+        if (data != null && data.length() >  0){
+
         }
     }
 
@@ -850,6 +887,7 @@ public class DataActivity extends AppCompatActivity  {
         }
     }
 
+
     private void evaluateChunk(String current_data){
 
         String[] chunk = current_data.split("\n");
@@ -875,8 +913,6 @@ public class DataActivity extends AppCompatActivity  {
                     //Number number = plot.getBounds().getMaxY();
                     plot.getOuterLimits().set(0, n, 0, 50000);
                     String locationText = "";
-
-
 
                     if (mLocation != null) {
                         String latitude = "" + mLocation.getLatitude();
