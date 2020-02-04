@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity{
         try {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             String version = pInfo.versionName;
-            getSupportActionBar().setTitle("FluxMeter V"+version);
+            getSupportActionBar().setTitle("FluxMeter "+version);
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }

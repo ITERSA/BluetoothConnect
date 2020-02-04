@@ -46,11 +46,13 @@ import android.widget.ToggleButton;
 import com.androidplot.Plot;
 import com.androidplot.PlotListener;
 import com.androidplot.xy.BoundaryMode;
+import com.androidplot.xy.EditableXYSeries;
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.PanZoom;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
+import com.androidplot.xy.XYSeries;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -61,6 +63,8 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -75,6 +79,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -137,6 +142,7 @@ public class DataActivity extends AppCompatActivity  {
 
     private boolean isDone;
 
+    @SuppressLint("HandlerLeak")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -225,7 +231,6 @@ public class DataActivity extends AppCompatActivity  {
 
             }
         });
-
         plot = (XYPlot) findViewById(R.id.plot);
         tvTemp = (TextView) findViewById(R.id.tvTemp);
         tvBat = (TextView)findViewById(R.id.tvBat);
@@ -244,6 +249,7 @@ public class DataActivity extends AppCompatActivity  {
         panZoom.setEnabled(false);
         plot.getOuterLimits().set(0,1, 0, 50000);
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#####.##"));
+       // plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).setFormat(new DecimalFormat("#####.#"));
         plot.setBorderStyle(Plot.BorderStyle.NONE, null, null);
         plot.setPlotMargins(0, 0, 0, 0);
         plot.setPlotPadding(0, 0, 0, 0);
@@ -254,9 +260,8 @@ public class DataActivity extends AppCompatActivity  {
         /*plot.setRangeTopMax(400);
         plot.setRangeTopMin(1);*/
         //plot.setRangeBottomMax(0);
-        //plot.setDomainStep(StepMode.INCREMENT_BY_VAL, 20);
+        //plot.setDomainStep(StepMode.INCREMENT_BY_VAL, 0);
 
-        plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("###.#"));
         plot.addListener(new PlotListener() {
             @Override
             public void onBeforeDraw(Plot source, Canvas canvas) {
@@ -303,7 +308,7 @@ public class DataActivity extends AppCompatActivity  {
                     Log.v("current_data","chunk: " + readMessage);
                     recDataString.append(readMessage);
                     int endOfLineIndex = recDataString.lastIndexOf("\n");
-
+                    //int endOfLineIndex2 = recDataString.lastIndexOf("\r");
                     Log.v("current_data","raw data: " + recDataString);
                     if (endOfLineIndex > 0) {
                         String current_data = recDataString.toString();
@@ -504,8 +509,12 @@ public class DataActivity extends AppCompatActivity  {
         String[] spinnerItems = getResources().getStringArray(R.array.items_name); //leemos valores de string
         for (int i = 0; i < spinnerItems.length; i++){
             ArrayList<Number> values = new ArrayList<Number>();
-            //dataMapped.put(spinnerItems[i],new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, spinnerItems[i]));
-            dataMapped.put(spinnerItems[i],new SimpleXYSeries(values, values, spinnerItems[i]));
+            SimpleXYSeries xy = new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, spinnerItems[i]);
+            //SimpleXYSeries xy = new SimpleXYSeries(values, values, spinnerItems[i]);
+            //xy.useImplicitXVals();
+
+            dataMapped.put(spinnerItems[i],xy);
+            //dataMapped.put(spinnerItems[i],new SimpleXYSeries(new ArrayList<Number>(),new ArrayList<Number>(), spinnerItems[i]));
         }
     }
 
@@ -513,20 +522,26 @@ public class DataActivity extends AppCompatActivity  {
         if (dataMapped == null){
             dataMapped = new HashMap<String, SimpleXYSeries>();
         }
-        ArrayList<Number> values = new ArrayList<Number>();
-        dataMapped.put(serieName, new SimpleXYSeries(values, values, serieName));
+        //ArrayList<Number> values = new ArrayList<Number>();
+        //
+        SimpleXYSeries xy = new SimpleXYSeries(new ArrayList<Number>(), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, serieName);
+        //SimpleXYSeries xy = new SimpleXYSeries(new ArrayList<Number>(),new ArrayList<Number>(), serieName);
+       // xy.useImplicitXVals();
+        dataMapped.put(serieName, xy);
+
+       // dataMapped.put(serieName, new SimpleXYSeries(new ArrayList<Number>(),new ArrayList<Number>() , serieName));
     }
 
     /**
      *Prevent show raw, co2abs, cellpress, celltemp
      *
      */
-    private void updateSpinner(String name){
-        if (!name.contentEquals("co2abs") && !name.contentEquals("raw") && !name.contentEquals("cellpress") && !name.contentEquals("celltemp")){
+    private void updateSpinner(String name) {
+
             SpinnerAdapter spinnerAdapter = spinner.getAdapter();
             int size = spinnerAdapter.getCount();
             ArrayList<String> listSpinner = new ArrayList<>();
-            for (int i = 0; i < size; i++){
+            for (int i = 0; i < size; i++) {
                 //Prevent show raw, co2abs, cellpress, celltemp
                 listSpinner.add(spinnerAdapter.getItem(i).toString());
             }
@@ -537,7 +552,6 @@ public class DataActivity extends AppCompatActivity  {
             spinnerAdapter2.setDropDownViewResource(R.layout.spinner_item);
             spinner.setAdapter(spinnerAdapter2);
             spinnerAdapter2.notifyDataSetChanged();
-      }
     }
 
     /*Clear all series*/
@@ -792,46 +806,48 @@ public class DataActivity extends AppCompatActivity  {
      * @param key String with
      * @param value String with value
      */
-    private void insertIntoMap(String key, String value){
+    private void insertIntoMap(String key, String value, Number time) {
 
-        if (key.contentEquals("TIME")){
-            updateTime(value);
-            return;
-        }
-        SimpleXYSeries serie = dataMapped.get(key);
-        if (serie == null) {
-            initSerie(key);
-            serie = dataMapped.get(key);
-            updateSpinner(key);
-        }
-        if ((!value.contains("NAN")) && (value.length() > 0)) {
-            try {
-                Number n = Double.parseDouble(value);
-                if (n != null) {
-                    Number n1 = 0;
-                    if ((n == n1) && (serie.size() > 0))     //
-                        n = serie.getX(serie.size() - 1);
-                    serie.addLast(0, n);
+        if (!key.contentEquals("co2abs") && !key.contentEquals("model")
+                && !key.contentEquals("cellpress") /*&& !key.contentEquals("celltemp")*/
+                && !key.contentEquals("lat") && !key.contentEquals("lon") && !key.contentEquals("alt")
+                && !key.contentEquals("date") && !key.contentEquals("gpsTime") && !key.contentEquals("time")) {
+
+            SimpleXYSeries serie = dataMapped.get(key);
+
+            if (serie == null) {
+                initSerie(key);
+                serie = dataMapped.get(key);
+                updateSpinner(key);
+            }
+            if ((!value.contains("NAN")) && (value.length() > 0)) {
+                try {
+                    Number n = Double.parseDouble(value);
+                    if (n != null) {
+                        Number n1 = 0;
+                        if ((n == n1) && (serie.size() > 0))     //
+                            n = serie.getX(serie.size() - 1);
+                        serie.addLast(time, n);
+
+                    }
+                } catch (NumberFormatException e) {
+                    serie.addLast(time, 0);
+                } catch (NullPointerException e) {
+                    serie.addLast(time, 0);
                 }
-            } catch (NumberFormatException e) {
-                serie.addLast(0, 0);
-            } catch (NullPointerException e) {
-                serie.addLast(0, 0);
+            } else {
+                Number n1 = 0;
+                if (serie.size() > 0) {
+                    n1 = serie.getX(serie.size() - 1);
+                }
+                serie.addLast(0, n1);
             }
-        } else {
-            Number n1 = 0;
-            if (serie.size() > 0) {
-                n1 = serie.getX(serie.size() - 1);
-            }
-            serie.addLast(0, n1);
         }
     }
-
     /**
      * Insert 'time' parameter at the end of each serie coordinate as X value
-     * @param time
      */
-    private void updateTime(String time){
+    /*private void updateTime(String time){
         if (dataMapped != null){
             for (SimpleXYSeries serie : dataMapped.values()){
                 //remove items in plot
@@ -848,18 +864,11 @@ public class DataActivity extends AppCompatActivity  {
                 }
             }
         }
-    }
-
-
-    private void parseChunk(String data){
-        if (data != null && data.length() >  0){
-
-        }
-    }
+    }*/
 
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
     //initial divider1 = ',' divider2 = ':'
-    private void customParser(String divider1, String divider2, String data){
+   /* private void customParser(String divider1, String divider2, String data){
         Log.v("current_data", data);
         if (data != null && data.length() >  0){
             String[] dataList = data.split(divider1);
@@ -879,34 +888,72 @@ public class DataActivity extends AppCompatActivity  {
                                 if ((key_val[0] != null) && key_val[1] != null)
                                     insertIntoMap(key_val[0], key_val[1]);
                             }
-                        }/*else
-                            Log.v("current_data", "EMPTY!!!");*/
+                        }
                     }
                 }
             }
         }
-    }
+    }*/
 
+
+    private void jsonParser(JSONObject jObject, Number time){
+       // if (data != null && data.length() >  0) {
+            try {
+                //JSONObject jObject = new JSONObject(data);
+                Iterator<String> keys = jObject.keys();
+                //JSONObject licorJson = jObject.getJSONObject("licor");
+
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    if (jObject.get(key) instanceof JSONObject) {
+                        // do something with jsonObject here
+                        JSONObject object = jObject.getJSONObject(key);
+                        jsonParser(object, time);
+                    } else {
+                        String value = jObject.getString(key);
+                        insertIntoMap(key, value, time);
+                    }
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+      // }
+    }
 
     private void evaluateChunk(String current_data){
 
         String[] chunk = current_data.split("\n");
         int cursor = 0;
-        //Quitamos corchetes de inicio([) y final (]/r/n)
 
         for (int i = 0 ; i < chunk.length; i++){
             //Log.v("current_data", "initial: " + chunk[i]);
-            int initOfLineIndex =  chunk[i].indexOf("[");
-            int endOfLineIndex = chunk[i].lastIndexOf("\r");
-            if ((initOfLineIndex == 0) && (endOfLineIndex == chunk[i].length() - 1)){
+            JSONObject jObject = null;
+            String dataInPrint = chunk[i];
+            try {
+                 jObject = new JSONObject(chunk[i]);
+            } catch (JSONException e) {
+                e.printStackTrace();
+                continue;
+            }
+            Double time = 0.0;
+            try {
+                time = jObject.getDouble("time");
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            /*int initOfLineIndex =  chunk[i].indexOf("[");
+            int endOfLineIndex = chunk[i].lastIndexOf("\r");*/
+            //if ((initOfLineIndex == 0) && (endOfLineIndex == chunk[i].length() - 1)){
               // Log.v("current_data", "Well formed");
 
-                String dataInPrint = chunk[i].substring(initOfLineIndex + 1, endOfLineIndex - 1);
+               // String dataInPrint = chunk[i].substring(initOfLineIndex + 1, endOfLineIndex - 1);
                 // if toggle button is checked, then add data parsed to series for showing in Plot
                 if (tgRecord.isChecked()) {
 
-                    customParser(",", ":", dataInPrint);
+                    //customParser(",", ":", dataInPrint);
                                 /*Fixed bug: Update zoomable range to current max X (visible)*/
+
+                    jsonParser(jObject, time);
                     plot.redraw();
                     //TODO update current value widget
                     Number n = maxX + 1;
@@ -929,14 +976,11 @@ public class DataActivity extends AppCompatActivity  {
                     dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " " + dataInPrint + ","+ locationText +"\n");
                     updateInfoWidget();
                 //    Log.v("DataActivity", dataInPrint);
-                    /***/
-
-
                 }
-            }else{
+            /*}else{
                 cursor = current_data.length() - chunk.length;
-                char x = current_data.charAt(cursor);
-            }
+                //char x = current_data.charAt(cursor);
+            }*/
         }
         int endOfLineIndex = current_data.lastIndexOf("\n");
         if (endOfLineIndex == (current_data.length() - 1)){ //if current data doesnt end with \n
