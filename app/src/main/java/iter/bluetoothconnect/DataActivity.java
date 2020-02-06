@@ -47,6 +47,7 @@ import com.androidplot.Plot;
 import com.androidplot.PlotListener;
 import com.androidplot.xy.BoundaryMode;
 import com.androidplot.xy.EditableXYSeries;
+import com.androidplot.xy.FastXYSeries;
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.PanZoom;
 import com.androidplot.xy.SimpleXYSeries;
@@ -247,7 +248,7 @@ public class DataActivity extends AppCompatActivity  {
         panZoom.setZoom(PanZoom.Zoom.STRETCH_HORIZONTAL);
         panZoom.setPan(PanZoom.Pan.HORIZONTAL);
         panZoom.setEnabled(false);
-        plot.getOuterLimits().set(0,1, 0, 50000);
+        plot.getOuterLimits().set(0,100, 0, 50000);
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#####.##"));
        // plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).setFormat(new DecimalFormat("#####.#"));
         plot.setBorderStyle(Plot.BorderStyle.NONE, null, null);
@@ -1038,11 +1039,11 @@ public class DataActivity extends AppCompatActivity  {
             else
                 footer = String.format("\nRango_%s:(%d - %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
             data = data + footer;
-            double correlation2 = calculatePearsonCorrelation("A03", minX, maxX);
+            /*double correlation2 = calculatePearsonCorrelation("A03", minX, maxX);
 
             String footer2 =  String.format("\nRango_%s:(%d - %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", "A03", minX, maxX, calculateSlope("A03", minX, maxX), correlation2 * correlation2);
             data = data + footer2;
-
+*           */
             String filePrefix = campaingName.replaceAll("\\s+",""); //Remove white spaces
             filePrefix = filePrefix + "_" + pointName + "_" + userName;
             file = new File(folder, filePrefix + "_" + fileName+".txt");

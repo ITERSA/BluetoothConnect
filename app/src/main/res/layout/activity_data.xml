@@ -151,7 +151,7 @@
         android:layout_height="36dp"
         android:layout_marginBottom="8dp"
         android:foregroundGravity="center_vertical|center_horizontal"
-        app:constraint_referenced_ids="spinner, toggleRecording, btOptions"
+        app:constraint_referenced_ids="spinner"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_chainStyle="packed"

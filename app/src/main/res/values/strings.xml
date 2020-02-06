@@ -2,10 +2,6 @@
     <string name="app_name" translatable="false">FluxMeter</string>
     <string-array name="items_name">
         <item>co2</item>
-        <item>DIS</item>
-        <item>TAM</item>
-        <item>HAM</item>
-        <item>A00</item>
     </string-array>
 
     <string name="title_activity_maps">Map</string>
@@ -14,24 +10,24 @@
     <!-- Strings related to Settings -->
     <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyDG24BDJKM5y3XDlVCwN4CYUBMtvCFdTnQ</string>
     <string name="HOST" translatable="false">http://fluxmeters.involcan.org/data</string>
-    <string name="campaing_list">campaing_list</string>
-    <string name="extra_key_position_item">position_item</string>
-    <string name="extra_key_username">key_username</string>
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="extra_campaing_name">extra_campaing_name</string>
-    <string name="extra_device_address">extra_device_name</string>
-    <string name="extra_lat">extra_lat</string>
-    <string name="extra_long">extra_long</string>
-    <string name="extra_accuracy">extra_accuracy</string>
-    <string name="extra_point_name">extra_point_name</string>
-    <string name="key_configs">Configs</string>
-    <string name="key_maptype">key_maptype</string>
-    <string name="key_filelist">key_filelist</string>
-    <string name="key_firsttime">key_firsttime</string>
+    <string name="campaing_list" translatable="false">campaing_list</string>
+    <string name="extra_key_position_item" translatable="false">position_item</string>
+    <string name="extra_key_username" translatable="false">key_username</string>
+    <string name="navigation_drawer_open" translatable="false">Open navigation drawer</string>
+    <string name="navigation_drawer_close" translatable="false">Close navigation drawer</string>
+    <string name="extra_campaing_name" translatable="false">extra_campaing_name</string>
+    <string name="extra_device_address" translatable="false">extra_device_name</string>
+    <string name="extra_lat" translatable="false">extra_lat</string>
+    <string name="extra_long" translatable="false">extra_long</string>
+    <string name="extra_accuracy" translatable="false">extra_accuracy</string>
+    <string name="extra_point_name" translatable="false">extra_point_name</string>
+    <string name="key_configs" translatable="false">Configs</string>
+    <string name="key_maptype" translatable="false">key_maptype</string>
+    <string name="key_filelist" translatable="false">key_filelist</string>
+    <string name="key_firsttime" translatable="false">key_firsttime</string>
     <string name="quit_app">Do you want to close the app?</string>
-    <string name="quit_map">Do you want to end campaign? Status will get lost.</string>
-    <string name="quit_data">Do you want to close the test? Unsaved data will get lost.</string>
+    <string name="quit_map">Do you want to finish the campaign? Status will be lost.</string>
+    <string name="quit_data">Do you want to close the test? Unsaved data will be lost.</string>
     <string name="yes">Finish</string>
     <string name="exit">Exit</string>
     <string name="back">Back</string>
@@ -47,7 +43,7 @@
     <string name="single">Single test</string>
     <string name="scan">Scan</string>
     <string name="start">Start</string>
-    <string name="img">Image</string>
+    <string name="img" translatable="false">Image</string>
     <string name="temporal">No device detected</string>
     <string name="temporal2">Press scan to search for new devices</string>
     <string name="no_device">Any device detected</string>
@@ -72,7 +68,7 @@
     <string name="cancel">Cancel</string>
     <string name="restart">Process restarted</string>
     <string name="activate">Activate</string>
-    <string name="gps" >GPS</string>
+    <string name="gps" translatable="false">GPS</string>
     <string name="gps_inactive">GPS is not active. Do you want to activate it?</string>
     <string name="no_gps">No GPS coordinates available. Please activate GPS or wait a few seconds.</string>
     <string name="bt_inactive">Bluetooth is not active. Do you want to activate it?</string>
