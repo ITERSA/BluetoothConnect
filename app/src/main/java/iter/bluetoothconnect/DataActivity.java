@@ -64,6 +64,7 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -116,9 +117,15 @@ public class DataActivity extends AppCompatActivity  {
     public static final int FTP_PORT = 12221;
     public static final String FTP_USER = "movgas";
     public static final String FTP_PASS = "m0vg4s";
+    private static final String WORKING_DIRECTORY = "/Portable";
+
+    private static final String COMMAND_START = "+COMMAND:1\n";
+    private static final String COMMAND_STOP = "+COMMAND:0\n";
+
 
     private ToggleButton tgRecord;
-    private StringBuilder dataToFile = new StringBuilder();
+    //private StringBuilder dataToFile = new StringBuilder();
+    private JSONArray jsonArray = new JSONArray();
     /***/
     private XYPlot plot;
     private PanZoom panZoom;
@@ -184,24 +191,27 @@ public class DataActivity extends AppCompatActivity  {
                 offOptionMenu();
                // plot.setTitle("");
                 panZoom.setEnabled(false);
-                dataToFile.setLength(0);
+                //dataToFile.setLength(0);
+                jsonArray = new JSONArray();
                 clearAllSeries();   //Inicializa series
                 plot.setDomainBoundaries(0,1, BoundaryMode.AUTO);
                 //change left drawable
                 int imgResource = android.R.drawable.ic_media_pause;
                 tgRecord.setCompoundDrawablesWithIntrinsicBounds(imgResource, 0, 0, 0);
                 startDate = new SimpleDateFormat("dd-MM-yyyy_HH:mm:ss").format(new Date());
-
-                launchBluetoothReaderThread();
+                readBtData();
+                //launchBluetoothReaderThread();
                 //plot.clear();   //Limpia grafica
             }else {
                 //change left drawable
                 int imgResource = android.R.drawable.ic_media_play;
                 tgRecord.setCompoundDrawablesWithIntrinsicBounds(imgResource, 0, 0, 0);
-                stopBluetoothReader();
-                if (mConnectedThread != null)
-                    mConnectedThread.interrupt();
-                Log.v("DataActivity", "Stop recording");
+                //stopBluetoothReader();
+
+                /*if (mConnectedThread != null)
+                    mConnectedThread.interrupt();*/
+                pauseReadBtData();
+                //Log.v("DataActivity", "Stop recording");
                 panZoom.setEnabled(true);
                 forceUpdateSlopeText();
                 activeOptionMenu();
@@ -388,19 +398,49 @@ public class DataActivity extends AppCompatActivity  {
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
                 progressDialogFragment.dismiss();
-                if (msg.what == 1){
+               /* if (msg.what == 1){
                     if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
                         //mConnectedThread.write("+COMMAND:2\n");
-                        writeSocket("+COMMAND:1\n");
+                        writeSocket(COMMAND_START);
                         //mConnectedThread.write("0");
                         mConnectedThread.start();
                         Log.v("Connect", "OK!");
                         //mConnectedThread.write("+COMMAND:0\n");     //TODO turn on led  replace -> "+COMMAND:0"
                     }
-                }
+                }*/
             }
         };
+    }
+
+    private void readBtData(){
+        if ((btSocket != null) && (btSocket.isConnected())){
+            if ((mConnectedThread != null) && mConnectedThread.isAlive()) {
+                mConnectedThread.setReadStatus(false);
+                mConnectedThread.interrupt();
+            }
+            mConnectedThread = new ConnectedThread(btSocket);
+
+            //mConnectedThread.write("+COMMAND:2\n");
+            writeSocket(COMMAND_START);
+
+            mConnectedThread.start();
+
+            //mConnectedThread.write("0");
+            Log.v("Connect", "OK!");
+            //mConnectedThread.write("+COMMAND:0\n");     //TODO turn on led  replace -> "+COMMAND:0"
+        }
+    }
+
+    private void pauseReadBtData(){
+        if ((btSocket != null) && (btSocket.isConnected())) {
+            if ((mConnectedThread != null) && mConnectedThread.isAlive()) {
+                mConnectedThread.setReadStatus(false);
+                mConnectedThread.interrupt();
+
+            }
+            writeSocket(COMMAND_STOP);
+        }
     }
 
     private void writeSocket(String command){
@@ -416,11 +456,13 @@ public class DataActivity extends AppCompatActivity  {
 
     /*Start bluetooth connection */
    private void launchBluetoothReaderThread(){
-       Intent intent = getIntent();
-       String address = intent.getStringExtra(getString(R.string.extra_device_address));   //get current MAC
-       if (address!= null && !address.isEmpty()){
-           StablishBluetoothConnection stablishBluetoothConnection = new StablishBluetoothConnection(address);
-           stablishBluetoothConnection.start();
+       if ((btSocket == null) || (!btSocket.isConnected())){
+           Intent intent = getIntent();
+           String address = intent.getStringExtra(getString(R.string.extra_device_address));   //get current MAC
+           if (address!= null && !address.isEmpty()){
+               StablishBluetoothConnection stablishBluetoothConnection = new StablishBluetoothConnection(address);
+               stablishBluetoothConnection.start();
+           }
        }
     }
 
@@ -429,7 +471,7 @@ public class DataActivity extends AppCompatActivity  {
        /* if (mConnectedThread != null)
             //mConnectedThread.write("+COMMAND:1\n");    //TODO Turn off led  replace -> "+COMMAND:0"
             mConnectedThread.write("+COMMAND:3\n");*/
-        writeSocket("+COMMAND:0\n");
+        writeSocket(COMMAND_STOP);
           //  mConnectedThread.write("1");    //TODO Turn off led  replace -> "+COMMAND:0"
         if ((btSocket != null) && (btSocket.isConnected())){
             try {
@@ -442,14 +484,15 @@ public class DataActivity extends AppCompatActivity  {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-        if (mConnectedThread != null) {
+        if ((mConnectedThread != null) && mConnectedThread.isAlive()){
           //  mConnectedThread.write("+COMMAND:1\n");  //TODO Turn off led  replace -> "+COMMAND:1"
-            mConnectedThread.write("+COMMAND:1\n");
+            //mConnectedThread.write(COMMAND_STOP);
             //mConnectedThread.write("1");  //TODO Turn off led  replace -> "+COMMAND:1"
+            mConnectedThread.setReadStatus(false);
             mConnectedThread.interrupt();
         }
         stopBluetoothReader();
+        super.onDestroy();
     }
 
     @Override
@@ -462,6 +505,7 @@ public class DataActivity extends AppCompatActivity  {
                 getLastLocation();
             }
         }
+        launchBluetoothReaderThread();
     }
 
     @Override
@@ -709,9 +753,11 @@ public class DataActivity extends AppCompatActivity  {
       //updateTextView(tvBat, getItemValue("ivolt"), "V");
       String item = spinner.getSelectedItem().toString();
       updateTextView(tvCurrentVal,getItemValue(spinner.getSelectedItem().toString()),"");
-      updateTextView(tvBat, getItemValue("ivolt"), "V");
-      float pressValue =  getItemValue("cellpres").floatValue();
-      pressValue = pressValue /100f;
+      double bat_v =  getItemValue("bat_v").doubleValue();
+      Number n_bat = bat_v;
+      updateTextView(tvBat, n_bat, "V");
+      double pressValue =  getItemValue("cellpres").doubleValue();
+      pressValue = pressValue /1013.25;
       Number n = pressValue;
       updateTextView(tvPress, n, "a");
   }
@@ -741,8 +787,10 @@ public class DataActivity extends AppCompatActivity  {
               .setPositiveButton(getString(R.string.send), new DialogInterface.OnClickListener() {
                   @Override
                   public void onClick(DialogInterface dialog, int which) {
-                      if (dataToFile.length() > 0) {
-                          WriteToFileThread writeToFileThread = new WriteToFileThread(dataToFile.toString());
+                      //if (dataToFile.length() > 0) {
+                      if (jsonArray.length() > 0){
+                          //WriteToFileThread writeToFileThread = new WriteToFileThread(dataToFile.toString());
+                          WriteToFileThread writeToFileThread = new WriteToFileThread(jsonArray);
                           writeToFileThread.start();
                           dialog.dismiss();
                       }
@@ -929,7 +977,7 @@ public class DataActivity extends AppCompatActivity  {
         for (int i = 0 ; i < chunk.length; i++){
             //Log.v("current_data", "initial: " + chunk[i]);
             JSONObject jObject = null;
-            String dataInPrint = chunk[i];
+            //String dataInPrint = chunk[i];
             try {
                  jObject = new JSONObject(chunk[i]);
             } catch (JSONException e) {
@@ -937,8 +985,14 @@ public class DataActivity extends AppCompatActivity  {
                 continue;
             }
             Double time = 0.0;
+            Double lat_json = 0.0;
+            Double lng_json = 0.0;
+            Double alt_json = 0.0;
             try {
                 time = jObject.getDouble("time");
+                lat_json = jObject.getDouble("lat");
+                lng_json = jObject.getDouble("lon");
+                alt_json = jObject.getDouble("alt");
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -955,26 +1009,46 @@ public class DataActivity extends AppCompatActivity  {
                                 /*Fixed bug: Update zoomable range to current max X (visible)*/
 
                     jsonParser(jObject, time);
+
                     plot.redraw();
                     //TODO update current value widget
                     Number n = maxX + 1;
                     //Number number = plot.getBounds().getMaxY();
                     plot.getOuterLimits().set(0, n, 0, 50000);
-                    String locationText = "";
+                   // String locationText = "";
 
                     if (mLocation != null) {
-                        String latitude = "" + mLocation.getLatitude();
-                        latitude = latitude.replace(",", ".");
-                        String longitude = "" + mLocation.getLongitude();
+                        if ((lat_json == 0) || (lng_json == 0) || (alt_json == 0)) {
+                            try {
+                                jObject.put("lat", mLocation.getLatitude());
+                                jObject.put("lon", mLocation.getLongitude());
+                                jObject.put("alt", mLocation.getAltitude());
+                                jObject.put("acc", mLocation.getAccuracy());
+                            }catch (JSONException e){
+                                e.printStackTrace();
+                            }
+
+                            //String latitude = "" + mLocation.getLatitude();
+                            //latitude = latitude.replace(",", ".");
+                        }
+                        try {
+                            jObject.put("hour", new SimpleDateFormat("HH:mm:ss").format(new Date()));
+                        }catch (JSONException e){
+                            e.printStackTrace();
+                        }
+
+                       /* String longitude = "" + mLocation.getLongitude();
                         longitude = longitude.replace(",", ".");
                         String altitude = (String) String.format("%.2f",  mLocation.getAltitude());
                         altitude = altitude.replace(",", ".");
                         String accuracy = (String) String.format("%.2f",  mLocation.getAccuracy());
                         accuracy = accuracy.replace(",", ".");
-                        locationText = String.format("Lat:%s,Long:%s,Alt:%s,Error:%s", latitude, longitude,altitude, accuracy);
+                        locationText = String.format("Lat:%s,Long:%s,Alt:%s,Error:%s", latitude, longitude,altitude, accuracy);*/
                     }
                    // locationText = locationText.replace(",",".");
-                    dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " " + dataInPrint + ","+ locationText +"\n");
+                   // dataToFile.append(new SimpleDateFormat("HH:mm:ss").format(new Date())+ " " + dataInPrint + /*","+ locationText +*/"\n");
+                    jsonArray.put(jObject);
+                    //dataToFile.append(jObject.toString());
                     updateInfoWidget();
                 //    Log.v("DataActivity", dataInPrint);
                 }
@@ -1002,25 +1076,53 @@ public class DataActivity extends AppCompatActivity  {
      */
     private class WriteToFileThread extends Thread{
 
-        private String data;
+        private JSONObject main_json;
+        //private String data;
         private File file;
 
-        public WriteToFileThread(String _data){
+        public WriteToFileThread(JSONArray array){
 
-            data = _data;
-            //data = campaingName + " - " + data;
+            main_json = new JSONObject();
             String pointName = getIntent().getStringExtra(getString(R.string.extra_point_name));
             if (pointName == null)
                 pointName = "-";
-            if (mLocation != null){
+
+            String item = spinner.getSelectedItem().toString();
+            double slope = calculateSlope(item, minX, maxX);
+            double correlation = calculatePearsonCorrelation(item, minX, maxX);
+           /* String footer = "";
+            if (item.contentEquals("co2"))
+                footer = String.format("\nRango_%s:(%d - %d) | Pendiente(*K):%.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
+            else
+                footer = String.format("\nRango_%s:(%d - %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);*/
+
+            try{
+                main_json.put("campaing", campaingName);
+                main_json.put("point", pointName);
+                main_json.put("user", userName);
+                main_json.put("starDate", startDate);
+                main_json.put("samples", array);
+                main_json.put("minX",minX);
+                main_json.put("maxX",maxX);
+                main_json.put("item", item);
+                main_json.put("slope", slope);
+                main_json.put("correlation", correlation * correlation);
+            }catch (JSONException e){
+                e.printStackTrace();
+            }
+            //data = _data;
+            //data = campaingName + " - " + data;
+
+
+          /*  if (mLocation != null){
                 String locationText = String.format("Lat:%f | Long:%f | Alt:%.1f | Error:%.1f m", mLocation.getLatitude(), mLocation.getLongitude(), mLocation.getAltitude(), mLocation.getAccuracy());
                 locationText = locationText.replace(",",".");
                 data = data.replace("|", ":");
                // data = data.replace("_", ",");
 
                 data = campaingName + " | " + pointName + " | " + userName + " | " + startDate + "\n" + locationText+"\n" + data;
-            }else
-                data = campaingName + " | " +  pointName + " | " + userName + " | " + startDate + "\n"+ data;
+            }else*/
+                //data = campaingName + " | " +  pointName + " | " + userName + " | " + startDate + "\n"+ data;
 
             String path = Environment.getExternalStorageDirectory() + File.separator  + "stationData";
             // Create the folder.
@@ -1030,15 +1132,8 @@ public class DataActivity extends AppCompatActivity  {
             //String date = new SimpleDateFormat("HH-mm-ss_dd-MM-yyyy").format(new Date());
             String fileName = startDate.replace(":","-");
             /**/
-            String item = spinner.getSelectedItem().toString();
-            double slope = calculateSlope(item, minX, maxX);
-            double correlation = calculatePearsonCorrelation(item, minX, maxX);
-            String footer = "";
-            if (item.contentEquals("co2"))
-                footer = String.format("\nRango_%s:(%d - %d) | Pendiente(*K):%.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
-            else
-                footer = String.format("\nRango_%s:(%d - %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", item, minX, maxX, slope, correlation * correlation);
-            data = data + footer;
+
+            //data = data + footer;
             /*double correlation2 = calculatePearsonCorrelation("A03", minX, maxX);
 
             String footer2 =  String.format("\nRango_%s:(%d - %d) | Pendiente: %.5f | Coeficiente_Correlacion(R2):%.5f", "A03", minX, maxX, calculateSlope("A03", minX, maxX), correlation2 * correlation2);
@@ -1046,7 +1141,7 @@ public class DataActivity extends AppCompatActivity  {
 *           */
             String filePrefix = campaingName.replaceAll("\\s+",""); //Remove white spaces
             filePrefix = filePrefix + "_" + pointName + "_" + userName;
-            file = new File(folder, filePrefix + "_" + fileName+".txt");
+            file = new File(folder, filePrefix + "_" + fileName+".json");
         }
 
         @Override
@@ -1055,7 +1150,7 @@ public class DataActivity extends AppCompatActivity  {
             int status = 0;
             try{
                 FileWriter writer = new FileWriter(file);
-                writer.append(data);
+                writer.append(main_json.toString());
                 writer.flush();
                 writer.close();
                 Log.d("DataActivity","File saved to "+file.getAbsolutePath());
@@ -1098,7 +1193,7 @@ public class DataActivity extends AppCompatActivity  {
                         BufferedInputStream buffIn=null;
                         buffIn=new BufferedInputStream(new FileInputStream(f));
                        // FileInputStream in = new FileInputStream(f);
-                        con.changeWorkingDirectory("/Portable");
+                        con.changeWorkingDirectory(WORKING_DIRECTORY);
                         result = con.storeFile(f.getName(),buffIn);
                         buffIn.close();
                         if (result)
@@ -1173,6 +1268,18 @@ public class DataActivity extends AppCompatActivity  {
             if (stablishBluetoothConnectionHandler != null)
                 stablishBluetoothConnectionHandler.sendMessageDelayed(msg,2000);
         }
+
+        public void flushSocket(){
+            if (btSocket != null){
+                try {
+                    btSocket.getOutputStream().flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+
     }
 
     /**
@@ -1182,12 +1289,13 @@ public class DataActivity extends AppCompatActivity  {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private boolean control_loop;
 
         public ConnectedThread(BluetoothSocket socket){
             mmSocket = socket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
-
+            control_loop = true;
             try {
                 tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
@@ -1199,7 +1307,7 @@ public class DataActivity extends AppCompatActivity  {
         @Override
         public void run(){
             //int bytes;
-            while (true)
+            while (control_loop)
                 try{
                     if (this.isInterrupted())
                         break;
@@ -1233,10 +1341,16 @@ public class DataActivity extends AppCompatActivity  {
 
         public void cancel(){
             try{
+                control_loop = false;
+                mmInStream.reset();
                 mmSocket.close();
             }catch (IOException e){
 
             }
+        }
+
+        public void setReadStatus(boolean status){
+            this.control_loop = status;
         }
     }
 
