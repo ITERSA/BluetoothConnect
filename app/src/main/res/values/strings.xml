@@ -80,5 +80,7 @@
     <string name="up_success"> uploaded successfully.</string>
     <string name="up_error">Error uploading </string>
     <string name="to_ftp"> through FTP.</string>
+    <string name="error_bt_connection">Error in bluetooth connection</string>
+    <string name="error_file">Error generating file</string>
 
 </resources>

@@ -46,14 +46,11 @@ import android.widget.ToggleButton;
 import com.androidplot.Plot;
 import com.androidplot.PlotListener;
 import com.androidplot.xy.BoundaryMode;
-import com.androidplot.xy.EditableXYSeries;
-import com.androidplot.xy.FastXYSeries;
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.PanZoom;
 import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
-import com.androidplot.xy.XYSeries;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -189,9 +186,8 @@ public class DataActivity extends AppCompatActivity  {
             if (isChecked){
                 Log.v("DataActivity", "Recording...");
                 offOptionMenu();
-               // plot.setTitle("");
+                plot.setTitle("");
                 panZoom.setEnabled(false);
-                //dataToFile.setLength(0);
                 jsonArray = new JSONArray();
                 clearAllSeries();   //Inicializa series
                 plot.setDomainBoundaries(0,1, BoundaryMode.AUTO);
@@ -200,8 +196,6 @@ public class DataActivity extends AppCompatActivity  {
                 tgRecord.setCompoundDrawablesWithIntrinsicBounds(imgResource, 0, 0, 0);
                 startDate = new SimpleDateFormat("dd-MM-yyyy_HH:mm:ss").format(new Date());
                 readBtData();
-                //launchBluetoothReaderThread();
-                //plot.clear();   //Limpia grafica
             }else {
                 //change left drawable
                 int imgResource = android.R.drawable.ic_media_play;
@@ -258,7 +252,7 @@ public class DataActivity extends AppCompatActivity  {
         panZoom.setZoom(PanZoom.Zoom.STRETCH_HORIZONTAL);
         panZoom.setPan(PanZoom.Pan.HORIZONTAL);
         panZoom.setEnabled(false);
-        plot.getOuterLimits().set(0,100, 0, 50000);
+        plot.getOuterLimits().set(0,1000, 0, 50000);
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#####.##"));
        // plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).setFormat(new DecimalFormat("#####.#"));
         plot.setBorderStyle(Plot.BorderStyle.NONE, null, null);
@@ -387,7 +381,7 @@ public class DataActivity extends AppCompatActivity  {
                 uploadFileToFTPThread.start();
                 offOptionMenu();
             }else{
-                Toast.makeText(getApplicationContext(),"Error generando el fichero "+ (String)msg.obj, Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(),getString(R.string.error_file) + " " + (String)msg.obj, Toast.LENGTH_LONG).show();
             }
             }
         };
@@ -398,8 +392,10 @@ public class DataActivity extends AppCompatActivity  {
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
                 progressDialogFragment.dismiss();
-               /* if (msg.what == 1){
-                    if ((btSocket != null) && (btSocket.isConnected())){
+               if (msg.what == 0){
+                   Toast.makeText(getApplicationContext(), getString(R.string.error_bt_connection), Toast.LENGTH_LONG).show();
+                   finish();
+                    /*if ((btSocket != null) && (btSocket.isConnected())){
                         mConnectedThread = new ConnectedThread(btSocket);
                         //mConnectedThread.write("+COMMAND:2\n");
                         writeSocket(COMMAND_START);
@@ -407,8 +403,8 @@ public class DataActivity extends AppCompatActivity  {
                         mConnectedThread.start();
                         Log.v("Connect", "OK!");
                         //mConnectedThread.write("+COMMAND:0\n");     //TODO turn on led  replace -> "+COMMAND:0"
-                    }
-                }*/
+                    }*/
+                }
             }
         };
     }
@@ -507,6 +503,17 @@ public class DataActivity extends AppCompatActivity  {
         }
         launchBluetoothReaderThread();
     }
+
+  /*  @Override
+    public void onConfigurationChanged(Configuration config) {
+        super.onConfigurationChanged(config);
+        if (plot != null){
+            plot.redraw();
+            Number n = maxX + 1;
+            //Number number = plot.getBounds().getMaxY();
+            //plot.getOuterLimits().set(0, n, 0, 50000);
+        }
+    }*/
 
     @Override
     public void finish() {
@@ -668,7 +675,7 @@ public class DataActivity extends AppCompatActivity  {
             if (domainMax > serie.size())
                 size = serie.size() - 1;
             SimpleRegression simpleRegression = new SimpleRegression(true);
-            for (int i = domainMin; i <= size; i++){
+            for (int i = domainMin; i < size; i++){
                 //TODO revise range
                 simpleRegression.addData(serie.getX(i).doubleValue(), serie.getY(i).doubleValue());
             }
@@ -696,9 +703,17 @@ public class DataActivity extends AppCompatActivity  {
             double[] y = new double[sizeVector];
 
             int cont = 0;
-            for (int i = domainMin; i <= rangeTop; i++){
-                x[cont] = serie.getX(i).doubleValue();
-                y[cont] = serie.getY(i).doubleValue();
+            for (int i = domainMin; i < rangeTop; i++){
+                /*Double dx = serie.getX(i).doubleValue();
+                Double dy = serie.getY(i).doubleValue();
+                if (!dx.isNaN() && !dy.isNaN()){
+                    xVals.add(dx);
+                    yVals.add(dy);
+                }*/
+                double dx = serie.getX(i).doubleValue();
+                x[cont] = dx;
+                double dy = serie.getY(i).doubleValue();
+                y[cont] = dy;
                 cont++;
             }
             result = new PearsonsCorrelation().correlation(x, y);
@@ -951,7 +966,6 @@ public class DataActivity extends AppCompatActivity  {
                 //JSONObject jObject = new JSONObject(data);
                 Iterator<String> keys = jObject.keys();
                 //JSONObject licorJson = jObject.getJSONObject("licor");
-
                 while (keys.hasNext()) {
                     String key = keys.next();
                     if (jObject.get(key) instanceof JSONObject) {
@@ -1233,7 +1247,7 @@ public class DataActivity extends AppCompatActivity  {
                 try {
                     btSocket = device.createInsecureRfcommSocketToServiceRecord(BTMODULEUUID);
                 } catch (IOException e) {
-                   // Toast.makeText(getApplicationContext(), "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), getString(R.string.error_bt_connection), Toast.LENGTH_LONG).show();
                     finish();
                 }
             }
@@ -1266,7 +1280,8 @@ public class DataActivity extends AppCompatActivity  {
             else
                 msg.what = 0;
             if (stablishBluetoothConnectionHandler != null)
-                stablishBluetoothConnectionHandler.sendMessageDelayed(msg,2000);
+                //stablishBluetoothConnectionHandler.sendMessageDelayed(msg,2000);
+                stablishBluetoothConnectionHandler.sendMessage(msg);
         }
 
         public void flushSocket(){
@@ -1342,7 +1357,6 @@ public class DataActivity extends AppCompatActivity  {
         public void cancel(){
             try{
                 control_loop = false;
-                mmInStream.reset();
                 mmSocket.close();
             }catch (IOException e){
 

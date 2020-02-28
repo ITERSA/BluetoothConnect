@@ -43,4 +43,6 @@
     <string name="up_error">"Error enviando "</string>
     <string name="to_ftp">" por FTP."</string>
     <string name="up_success">" enviado con éxito."</string>
+    <string name="error_bt_connection">Error en la conexión bluetooth</string>
+    <string name="error_file">"Error generando el fichero "</string>
 </resources>

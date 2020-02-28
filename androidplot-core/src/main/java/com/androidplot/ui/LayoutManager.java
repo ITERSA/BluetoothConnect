@@ -25,7 +25,6 @@ import android.graphics.Region;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.androidplot.exception.PlotRenderException;
 import com.androidplot.ui.widget.Widget;
 import com.androidplot.util.DisplayDimensions;
 import com.androidplot.util.LinkedLayerList;
@@ -83,7 +82,7 @@ public class LayoutManager extends LinkedLayerList<Widget>
         setDrawOutlineShadowsEnabled(enabled);
     }
 
-    public void draw(Canvas canvas) throws PlotRenderException {
+    public void draw(Canvas canvas) {
         if(isDrawMarginsEnabled()) {
             drawSpacing(canvas, displayDims.canvasRect, displayDims.marginatedRect, marginPaint);
         }
@@ -92,11 +91,11 @@ public class LayoutManager extends LinkedLayerList<Widget>
         }
         for (Widget widget : elements()) {
             try {
-                canvas.save(Canvas.ALL_SAVE_FLAG);
+                canvas.save();
                 PositionMetrics metrics = widget.getPositionMetrics();
                 float elementWidth = widget.getWidthPix(displayDims.paddedRect.width());
                 float elementHeight = widget.getHeightPix(displayDims.paddedRect.height());
-                PointF coords = widget.getElementCoordinates(elementHeight,
+                PointF coords = Widget.calculateCoordinates(elementHeight,
                         elementWidth, displayDims.paddedRect, metrics);
 
                 DisplayDimensions dims = widget.getWidgetDimensions();
@@ -140,7 +139,7 @@ public class LayoutManager extends LinkedLayerList<Widget>
 
     private static void drawSpacing(Canvas canvas, RectF outer, RectF inner, Paint paint) {
         try {
-            canvas.save(Canvas.ALL_SAVE_FLAG);
+            canvas.save();
             canvas.clipRect(inner, Region.Op.DIFFERENCE);
             canvas.drawRect(outer, paint);
         } finally {

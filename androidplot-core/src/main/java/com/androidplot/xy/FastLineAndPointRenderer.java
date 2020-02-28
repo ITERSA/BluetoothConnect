@@ -17,10 +17,11 @@
 package com.androidplot.xy;
 
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.support.annotation.NonNull;
 
-import com.androidplot.exception.PlotRenderException;
 import com.androidplot.ui.RenderStack;
 import com.androidplot.ui.SeriesRenderer;
 
@@ -36,6 +37,11 @@ import java.util.List;
  */
 public class FastLineAndPointRenderer extends XYSeriesRenderer<XYSeries, FastLineAndPointRenderer.Formatter> {
 
+    /**
+     * A line drawn by {@link Canvas#drawLines(float[], int, int, Paint)} must be defined by at
+     * least four points {@code x0, y0, x1, y1}
+     */
+    private static final int MINIMUM_NUMBER_OF_POINTS_TO_DEFINE_A_LINE = 4;
     private float[] points;
     List<Integer> segmentOffsets = new ArrayList<>();
     List<Integer> segmentLengths = new ArrayList<>();
@@ -44,7 +50,7 @@ public class FastLineAndPointRenderer extends XYSeriesRenderer<XYSeries, FastLin
     }
 
     @Override
-    protected void onRender(Canvas canvas, RectF plotArea, XYSeries series, Formatter formatter, RenderStack stack) throws PlotRenderException {
+    protected void onRender(Canvas canvas, RectF plotArea, XYSeries series, Formatter formatter, RenderStack stack) {
 
         segmentOffsets.clear();
         segmentLengths.clear();
@@ -94,10 +100,14 @@ public class FastLineAndPointRenderer extends XYSeriesRenderer<XYSeries, FastLin
         }
     }
 
-    protected void drawSegment(Canvas canvas, float[] points, int offset, int len, Formatter formatter) {
+    protected void drawSegment(@NonNull Canvas canvas,
+                               @NonNull float[] points,
+                               int offset,
+                               int len,
+                               Formatter formatter) {
         if(formatter.linePaint != null) {
             // draw lines:
-            if (len >= 4) {
+            if (len >= MINIMUM_NUMBER_OF_POINTS_TO_DEFINE_A_LINE) {
                 // optimization to avoid using 2x storage space to represent the full path:
                 if ((len & 2) != 0) {
                     canvas.drawLines(points, offset, len - 2, formatter.linePaint);
@@ -116,7 +126,9 @@ public class FastLineAndPointRenderer extends XYSeriesRenderer<XYSeries, FastLin
     }
 
     @Override
-    protected void doDrawLegendIcon(Canvas canvas, RectF rect, Formatter formatter) {
+    protected void doDrawLegendIcon(@NonNull Canvas canvas,
+                                    @NonNull RectF rect,
+                                    @NonNull Formatter formatter) {
         if(formatter.hasLinePaint()) {
             canvas.drawLine(rect.left, rect.bottom, rect.right, rect.top, formatter.getLinePaint());
         }

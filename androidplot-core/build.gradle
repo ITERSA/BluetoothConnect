@@ -57,13 +57,13 @@ task generateAttrsMarkdown(type: AttrMarkdown) {
 }
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
 
     defaultConfig {
         versionCode 1
         versionName "1.0"
         minSdkVersion 16
-        targetSdkVersion 27
+        targetSdkVersion 28
         testApplicationId "com.androidplot.test"
     }
 
@@ -86,7 +86,7 @@ def gitUrl = 'https://github.com/halfhp/androidplot.git'
 dependencies {
 
     implementation 'com.halfhp.fig:figlib:1.0.7'
-    implementation 'com.android.support:support-annotations:27.1.1'
+    implementation 'com.android.support:support-annotations:28.0.0'
     testImplementation "org.mockito:mockito-core:1.10.19"
     testImplementation group: 'junit', name: 'junit', version: '4.13-beta-3'
     testImplementation 'org.robolectric:robolectric:4.3'
@@ -94,7 +94,7 @@ dependencies {
     // temp fix for:
     // https://github.com/robolectric/robolectric/issues/1932
     testImplementation 'org.khronos:opengl-api:gl1.1-android-2.1_r1'
-    implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.android.support:appcompat-v7:28.0.0'
 }
 
 task javadoc(type: Javadoc) {
