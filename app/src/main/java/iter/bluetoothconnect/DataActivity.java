@@ -186,7 +186,7 @@ public class DataActivity extends AppCompatActivity  {
             if (isChecked){
                 Log.v("DataActivity", "Recording...");
                 offOptionMenu();
-                plot.setTitle("");
+               // plot.setTitle("");
                 panZoom.setEnabled(false);
                 jsonArray = new JSONArray();
                 clearAllSeries();   //Inicializa series
@@ -243,7 +243,7 @@ public class DataActivity extends AppCompatActivity  {
         tvCurrentVal = (TextView)findViewById(R.id.tvCurrentVal);
         initSeries();
        // plot.setDomainBoundaries(0, POINTS_IN_PLOT, BoundaryMode.AUTO);
-        plot.setRangeBoundaries(0,1, BoundaryMode.AUTO);
+        plot.setRangeBoundaries(0,0, BoundaryMode.AUTO);
         plot.setDomainBoundaries(0,1, BoundaryMode.AUTO);
         plot.setDomainStepValue(5);
         plot.setLinesPerRangeLabel(5);
@@ -252,7 +252,7 @@ public class DataActivity extends AppCompatActivity  {
         panZoom.setZoom(PanZoom.Zoom.STRETCH_HORIZONTAL);
         panZoom.setPan(PanZoom.Pan.HORIZONTAL);
         panZoom.setEnabled(false);
-        plot.getOuterLimits().set(0,1000, 0, 50000);
+        plot.getOuterLimits().set(0,1, 0, 50000);
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#####.##"));
        // plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).setFormat(new DecimalFormat("#####.#"));
         plot.setBorderStyle(Plot.BorderStyle.NONE, null, null);
@@ -280,7 +280,7 @@ public class DataActivity extends AppCompatActivity  {
                 if ((domainMin != minX) || (domainMax != maxX)){
                     minX = domainMin;
                     maxX = domainMax;
-                    if (!tgRecord.isChecked()){
+                    //if (!tgRecord.isChecked()){
                         String currentItem = spinner.getSelectedItem().toString();
                         double slope = calculateSlope(currentItem, minX, maxX);
                         double correlation = calculatePearsonCorrelation(currentItem, minX, maxX);
@@ -288,7 +288,7 @@ public class DataActivity extends AppCompatActivity  {
                             plot.setTitle(String.format( "Pte(*K): %.5f \n R2: %.5f", slope, correlation*correlation));
                         else
                             plot.setTitle(String.format( "Pte: %.5f \n R2: %.5f", slope, correlation*correlation));
-                    }
+                  //  }
                 }
             }
         });
@@ -508,10 +508,8 @@ public class DataActivity extends AppCompatActivity  {
     public void onConfigurationChanged(Configuration config) {
         super.onConfigurationChanged(config);
         if (plot != null){
+            plot.calculateMinMaxVals();
             plot.redraw();
-            Number n = maxX + 1;
-            //Number number = plot.getBounds().getMaxY();
-            //plot.getOuterLimits().set(0, n, 0, 50000);
         }
     }*/
 
@@ -561,8 +559,8 @@ public class DataActivity extends AppCompatActivity  {
         String[] spinnerItems = getResources().getStringArray(R.array.items_name); //leemos valores de string
         for (int i = 0; i < spinnerItems.length; i++){
             ArrayList<Number> values = new ArrayList<Number>();
-            SimpleXYSeries xy = new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, spinnerItems[i]);
-            //SimpleXYSeries xy = new SimpleXYSeries(values, values, spinnerItems[i]);
+            //SimpleXYSeries xy = new SimpleXYSeries(values, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, spinnerItems[i]);
+            SimpleXYSeries xy = new SimpleXYSeries(new ArrayList<Number>(), new ArrayList<Number>(), spinnerItems[i]);
             //xy.useImplicitXVals();
 
             dataMapped.put(spinnerItems[i],xy);
@@ -576,9 +574,9 @@ public class DataActivity extends AppCompatActivity  {
         }
         //ArrayList<Number> values = new ArrayList<Number>();
         //
-        SimpleXYSeries xy = new SimpleXYSeries(new ArrayList<Number>(), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, serieName);
-        //SimpleXYSeries xy = new SimpleXYSeries(new ArrayList<Number>(),new ArrayList<Number>(), serieName);
-       // xy.useImplicitXVals();
+        //SimpleXYSeries xy = new SimpleXYSeries(new ArrayList<Number>(), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, serieName);
+        SimpleXYSeries xy = new SimpleXYSeries(new ArrayList<Number>(),new ArrayList<Number>(), serieName);
+        //xy.useImplicitXVals();
         dataMapped.put(serieName, xy);
 
        // dataMapped.put(serieName, new SimpleXYSeries(new ArrayList<Number>(),new ArrayList<Number>() , serieName));
@@ -670,7 +668,7 @@ public class DataActivity extends AppCompatActivity  {
 
         double result = 0.0;
         SimpleXYSeries serie = dataMapped.get(serieName);
-        if ((serie.size() > 1) && (domainMin < domainMax)){
+        if ((serie.size() > 2) && (domainMin < domainMax)){
             int size = domainMax;
             if (domainMax > serie.size())
                 size = serie.size() - 1;
@@ -692,7 +690,7 @@ public class DataActivity extends AppCompatActivity  {
     private double calculatePearsonCorrelation(String serieName, int domainMin, int domainMax){
         double result = 0.0;
         SimpleXYSeries serie = dataMapped.get(serieName);
-        if ((serie.size() > 1) && (domainMin < domainMax)) {
+        if ((serie.size() > 2) && (domainMin < domainMax)) {
             int rangeTop = domainMax;
             int serieSize =  serie.size();
             if (rangeTop > serieSize)
@@ -704,12 +702,6 @@ public class DataActivity extends AppCompatActivity  {
 
             int cont = 0;
             for (int i = domainMin; i < rangeTop; i++){
-                /*Double dx = serie.getX(i).doubleValue();
-                Double dy = serie.getY(i).doubleValue();
-                if (!dx.isNaN() && !dy.isNaN()){
-                    xVals.add(dx);
-                    yVals.add(dy);
-                }*/
                 double dx = serie.getX(i).doubleValue();
                 x[cont] = dx;
                 double dy = serie.getY(i).doubleValue();
@@ -908,27 +900,6 @@ public class DataActivity extends AppCompatActivity  {
             }
         }
     }
-    /**
-     * Insert 'time' parameter at the end of each serie coordinate as X value
-     */
-    /*private void updateTime(String time){
-        if (dataMapped != null){
-            for (SimpleXYSeries serie : dataMapped.values()){
-                //remove items in plot
-                int size = serie.size();
-                if (size > 0) {
-                    try {
-                        Number n = Double.parseDouble(time);
-                        serie.setX(n,size - 1);
-                    } catch (NumberFormatException e) {
-                        serie.setX(0,size - 1);
-                    } catch (NullPointerException e) {
-                        serie.setX(0,size - 1);
-                    }
-                }
-            }
-        }
-    }*/
 
     //[TAM:25.00,HAM:35.00,DIS:184,ANA:[A00|2.23_A01|1.85_A02|1.70_A03|1.50],LIC:[celltemp|5.1704649e1_cellpres|1.0111982e2_co2|4.1958174e2_co2abs|6.6353826e-2_ivolt|1.2219238e1_raw|3780083.3641255]]
     //initial divider1 = ',' divider2 = ':'
@@ -1023,11 +994,13 @@ public class DataActivity extends AppCompatActivity  {
                                 /*Fixed bug: Update zoomable range to current max X (visible)*/
 
                     jsonParser(jObject, time);
-
+                    //plot.calculateMinMaxVals();
                     plot.redraw();
                     //TODO update current value widget
                     Number n = maxX + 1;
-                    //Number number = plot.getBounds().getMaxY();
+
+                    //Number number = plot.getBounds().getMaxX();
+
                     plot.getOuterLimits().set(0, n, 0, 50000);
                    // String locationText = "";
 
